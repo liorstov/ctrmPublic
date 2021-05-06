@@ -29,9 +29,6 @@
     <None Include="setup.py">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="SourcePython.py">
-      <Filter>Source Files</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImageP.h">

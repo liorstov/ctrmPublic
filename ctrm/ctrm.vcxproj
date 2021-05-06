@@ -372,7 +372,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="setup.py" />
-    <None Include="SourcePython.py" />
     <None Include="Zc.nor" />
   </ItemGroup>
   <ItemGroup>
