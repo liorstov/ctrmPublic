@@ -6,7 +6,7 @@ from distutils import sysconfig
 cpp_args = ['-std=c++11', '-stdlib=libc++']
 
 sfc_module = Extension(
-    'crp', sources=['source.cpp', "Geophone.cpp", "box.cpp", "ImageP.cpp","IpToGeoGeometry.cpp"],
+    'ctrm', sources=['source.cpp', "Geophone.cpp", "box.cpp", "ImageP.cpp","IpToGeoGeometry.cpp"],
     include_dirs=['c:/pybind11/include','eigen'],
     language='c++',
     extra_compile_args=cpp_args,

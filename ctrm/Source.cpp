@@ -8,10 +8,10 @@
 namespace py = pybind11;
 
 
-PYBIND11_MODULE(crp, m) {
+PYBIND11_MODULE(ctrm, m) {
 
 	py::class_<box> c(m, "box");
-	c.def(py::init<int,int,int,int>())
+	c.def(py::init<int,int,int,int,int,int>(),py::arg("traces"),py::arg("lines"),  py::arg("startRad"), py::arg("endRad"), py::arg("dx"), py::arg("dy"))
 		.def("readCoord", &box::readCoord)
 		.def("readVelo", &box::readVelo)
 		.def("readEnergy", &box::readEnergy)
@@ -40,7 +40,7 @@ PYBIND11_MODULE(crp, m) {
 
 
 int main() {
-	box mainBox(1,2,3,4);
+	box mainBox(1,2,3,4,1,1);
 	mainBox.readCoord("asd");
 	mainBox.readVelo("asd");
 	mainBox.readEnergy("");

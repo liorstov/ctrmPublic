@@ -5,23 +5,22 @@ namespace py = pybind11;
 
 
 #include <sstream> 
-box::box(int lines,int traces,int startRad, int endRad):numlin(lines), numcen(traces), startRadius(startRad), endRadius(endRad)
+box::box(int traces,int lines,int startRad, int endRad, int _dx, int _dy):numlin(lines), numcen(traces), startRadius(startRad), endRadius(endRad), dyLines(_dy),dxTrace(_dx)
 {
 	vGeophones.reserve(sizeof(Geophone) * 10000);
 	vImagePoints.reserve(sizeof(ImageP) * 10000);
-
 	
 }
+//
 void box::readCoord(string file)
 {
-	py::print("reading lol");
 	ifstream coordinats;
 	coordinats.open("OneHorzShot4CTRM_R_Coord.txt");
 	if (coordinats.is_open()) {
-		py::print("file open");
+		py::print("coordinate file open");
 	}
 	else {
-		py::print("no open");
+		py::print("can't open coordinate file");
 	}
 	string line;
 	int index,x, y, z;
@@ -77,11 +76,11 @@ void box::createImageSpace()
 {
 	py::print("lines", numlin, "traces", numcen, "radius", startRadius, "to", endRadius);
 	int index{ 0 };
-	for (int y_index = 0; y_index < numcen; y_index++)
+	for (int y_index = 0; y_index < numlin ; y_index++)
 	{
-		for (int x_index = 0; x_index < numlin; x_index++)
+		for (int x_index = 0; x_index < numcen; x_index++)
 		{
-			ImageP newIP(index++, float(x_index+1) * dxc, (float(y_index))* dyc + coordcy0, getGeoZ(x_index,y_index));
+			ImageP newIP(index++, float(x_index+1) * dxTrace, (float(y_index))* dyLines + coordcy0, getGeoZ(x_index,y_index));
 			vImagePoints.push_back(newIP);
 		}
 	}
@@ -116,6 +115,10 @@ float box::getGeoZ(int x, int y) {
 	return 0;
 }
 
+/// <summary>
+/// calculates the distances between geophones and Ip 
+/// for each pair calculates the potential time differences for each possible velocity
+/// </summary>
 void box::CalcSurfaceDist() 
 {
 	py::print("calculating Ip to Geophone distances");
@@ -124,26 +127,32 @@ void box::CalcSurfaceDist()
 	int deltaTime{ 0 };
 	for (auto& Ip : vImagePoints)
 	{
-		auto start = std::chrono::high_resolution_clock::now();
-
+		//loop over geophones
 		for (auto const& Geo : vGeophones)
 		{
 			dist = sqrtf(powf(Ip.x - Geo.x, 2) + powf(Ip.y - Geo.y, 2) + powf(Ip.z - Geo.z, 2));
+			
+			//geophone depth
 			verDepth = Ip.z - minimumDepth + Geo.z;
 			betta = asinf(verDepth / dist);
 			auto newIpGeo = IpToGeoGeometry(Geo.index, dist, betta, verDepth);
 
+			//loop over all the radius range
 			for (auto const& value : vRadiusVelo) {	
 				radius = value.first;
 				CurrectVelocity = value.second;
+
+				// just for the radius in wanted range
 				if (radius < startRadius || radius > endRadius) continue;			
 				
-
+				//average velocity from the surface to the radius
 				auto newRadiusVelo = RadiusTimeDelta(radius);
 				VVa = calcAvarageVelo(verDepth, radius);
 				IpDepth = verDepth + radius;
+
 				//distance between Ip and Geo for current radius
 				newRadiusVelo.distanceToIP = sqrtf(powf(dist, 2) + powf(IpDepth, 2) - 2 * sinf(betta) * dist * (IpDepth));
+
 				// a loop for checking a range of values around the speed of the radius 
 				for (size_t i = 0; i < vRange/dv*2+1; i++)
 				{
@@ -152,21 +161,26 @@ void box::CalcSurfaceDist()
 					deltaTime = lroundf((newRadiusVelo.distanceToIP / VV - (IpDepth) / CurrectVelocity) / dt);
 					newRadiusVelo.VelocityRangeTimeDelta.push_back(DeltaVelocity(VV,deltaTime));
 				}
+				// add to the vector of possible time differences
 				newIpGeo.RadiusTimeValues.push_back(newRadiusVelo);
-			}			
+			}		
+
+			//add to the vector of geophones for each IP
 			Ip.IpGeoCalc.push_back(newIpGeo);	
 
 		}
-		auto finish = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> elapsed = finish - start;
-		//std::cout << "Elapsed time: " << elapsed.count() << " s\n";
 	}
 
 	
 }
+/// <summary>
+/// calculate semblence for each IP for each sample
+/// </summary>
 void box::corrolationOnGeo()
 {
 	cout << "calculating corrolation" << endl;
+	auto start = std::chrono::high_resolution_clock::now();
+
 	float  S{ 0 }, SS{ 0 }, d{ 0 }, f1{ 0 }, f2{ 0 }, fCorrolation, geoEnergy{ 0 }, progress{ 0 }, totalIterations{ 0 };
 	int timeDiff, nTotalTraces{ 0 }, totalSize{ int(vImagePoints.size()) }, i{ 0 };
 
@@ -211,15 +225,17 @@ void box::corrolationOnGeo()
 
 					f1 += d * expf(60 * d);
 					f2 += expf(60 * d);
-
 				}
 
 				//for each sample calculate the corrolation
 				fCorrolation = f1 / f2;
+
+				//for each sample add the radius and correlation
 				Ip.SampleSemblance.push_back(std::tuple<int,int, float>(sample,radius+startRadius,fCorrolation));
 			}
 
 		}
+		// print status bar
 		progress = (float)i++ / (float)totalSize;
 		if (fmodf(progress, 0.1f) == 0) {
 			char str[80];
@@ -228,8 +244,9 @@ void box::corrolationOnGeo()
 		}
 		
 	}
-
-	py::print("Calculated", totalIterations,"iterations");
+	auto finish = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> elapsed = finish - start;
+	py::print("Calculated", totalIterations,"iterations", "in", elapsed.count(),"seconds");
 
 }
 float box::calcAvarageVelo(float begin, float end)
@@ -252,8 +269,9 @@ float box::calcAvarageVelo(float begin, float end)
 Eigen::MatrixXd box::getSample()
 {
 
-	Eigen::MatrixXd ret(numcen*numlin*(endRadius-startRadius+1)*nsamp,5);
-	
+	Eigen::MatrixXd ret(vImagePoints.size() * vImagePoints[0].SampleSemblance.size(),6);
+	py::print("writing", vImagePoints.size() * vImagePoints[0].SampleSemblance.size(), "records");
+
 	auto i{ 0 }, stamp{ 0 };
 	std::pair<int, float> semblance;
 	for (auto const& IP: vImagePoints)
@@ -261,15 +279,17 @@ Eigen::MatrixXd box::getSample()
 		stamp = 0;
 		for (auto const& samb : IP.SampleSemblance)
 		{		
-			ret(i, 0) = IP.x;
-			ret(i, 1) = IP.y;
-			ret(i, 2) = std::get<0>(samb);
-			ret(i, 3) = std::get<1>(samb);
-			ret(i, 4) = std::get<2>(samb);
+			ret(i, 0) = IP.IPindex;
+			ret(i, 1) = IP.x;
+			ret(i, 2) = IP.y;
+			ret(i, 3) = std::get<0>(samb);
+			ret(i, 4) = std::get<1>(samb);
+			ret(i, 5) = std::get<2>(samb);
 			++i;
 		}		
 	}
 
+	py::print(i);
 	return ret;
 }
 

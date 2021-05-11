@@ -1,9 +1,9 @@
-import crp,time,os,numpy as np, pandas as pd
+import ctrm,time,os,numpy as np, pandas as pd
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
 from plotnine import *
-
+from dplython import * 
 
 def plot(df,number): 
     fig = plt.figure()
@@ -20,26 +20,23 @@ def plot(df,number):
     plt.show()
 
 
-os.chdir('c:\\users\\liors\\source\\repos\\ctrm')
-a = crp.box(15,15,1,5)
+a = ctrm.box(100,20,1,35,1,5)
 a.readCoord("")
-a.getCoord()
 a.readVelo("")
 a.readEnergy("")
 a.createImageSpace()
 a.CalcSurfaceDist()
-st = time.time()
 a.corrolationOnGeo()
-end = time.time()
-print(end-st)
 #a.writeIP();
 #a.writeSemblence();
 b= a.getSample()
 
 samples = pd.DataFrame({"x": b[:,0],"y":b[:,1], "t" :b[:,2], "radius":b[:,3],"semb":b[:,4]})
-samples = samples[samples>0].dropna()
+#samples = samples[samples>0].dropna()
+samples
+sampleNumber = 0
 
-sampleNumber = 2
+grouped = samples.groupby(["x" ,"y","radius"]).mean()
 
 plot(samples[samples.t==sampleNumber], sampleNumber)
 
