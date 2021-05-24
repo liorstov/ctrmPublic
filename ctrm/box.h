@@ -17,12 +17,13 @@ class box
 	std::vector<ImageP> vImagePoints;
 
 public:
-	box(int, int,int,int);
+	box(int, int,int,int,int,int,int,int);
 	void readCoord(string file);
 	void readVelo(string file);
 	void readEnergy(string file);
+	Eigen::MatrixXd getEnergy();
 	void createImageSpace();
-	float getIP(int point, int sample);
+	int getIP(int point, int sample);
 	std::vector<int> getCoord();
 	float getGeophoneEnergy(int , int );
 
@@ -44,13 +45,13 @@ public:
 	float numshli = 1;
 	int numcen = 5;
 	int numlin = 5;
-	float dxc = 1.000000;
-	float dyc = 10.000000;
-	float coordcy0 = 45.000000;
-	int nsamp = 500;
+	int dxTrace = 1;
+	int dyLines = 10;
+	int coordcy0 = 45;
+	int nsamp = 1000;
 		
 	int jbeg = 0;
-	int jend = 400;
+	int jend = 700;
 	int startRadius = 1;
 	int endRadius = 5;
 	float rmin = 1;

@@ -5,13 +5,16 @@
     <ProjectGuid>8b047cc2-20d7-415c-b252-cac25779206f</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>pythonProj.py</StartupFile>
+    <StartupFile>
+    </StartupFile>
     <SearchPath>
     </SearchPath>
-    <WorkingDirectory>.</WorkingDirectory>
+    <WorkingDirectory>C:\Users\liors\source\repos\ctrm\ctrm</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>pythonProj</Name>
     <RootNamespace>PythonApplication1</RootNamespace>
+    <IsWindowsApplication>False</IsWindowsApplication>
+    <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -22,9 +25,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="pythonProj.py" />
-    <Compile Include="setup.py" />
+    <Compile Include="3dfile.py" />
     <Compile Include="SourcePython.py" />
+    <Compile Include="tests.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

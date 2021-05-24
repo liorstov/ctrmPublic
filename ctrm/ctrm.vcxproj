@@ -354,6 +354,7 @@
       <PreprocessorDefinitions>_RELEASEPY;_CONSOLE;CMAKE_SUPPRESS_REGENERATION ;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Users\liors\source\repos\ctrm\ctrm\eigen;C:\Python39\include;C:\pybind11\include;$(ProjectDir)\eigen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

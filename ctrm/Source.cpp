@@ -7,11 +7,10 @@
 #include <pybind11/eigen.h>
 namespace py = pybind11;
 
-
 PYBIND11_MODULE(ctrm, m) {
 
 	py::class_<box> c(m, "box");
-	c.def(py::init<int,int,int,int,int,int>(),py::arg("traces"),py::arg("lines"),  py::arg("startRad"), py::arg("endRad"), py::arg("dx"), py::arg("dy"))
+	c.def(py::init<int,int,int,int,int,int,int,int>(),py::arg("traces"),py::arg("lines"),  py::arg("startRad"), py::arg("endRad"), py::arg("dx"), py::arg("dy"), py::arg("nsamp"), py::arg("coordcy0"))
 		.def("readCoord", &box::readCoord)
 		.def("readVelo", &box::readVelo)
 		.def("readEnergy", &box::readEnergy)
@@ -23,6 +22,7 @@ PYBIND11_MODULE(ctrm, m) {
 		.def("writeSemblence", &box::writeSemblence)
 		.def("getCoord", &box::getCoord)
 		.def("getSample", &box::getSample)
+		.def("getEnergy", &box::getEnergy)
 		;
 
 #ifdef VERSION_INFO
@@ -40,7 +40,7 @@ PYBIND11_MODULE(ctrm, m) {
 
 
 int main() {
-	box mainBox(1,2,3,4,1,1);
+	/*box mainBox(1,2,3,4,1,1,1);
 	mainBox.readCoord("asd");
 	mainBox.readVelo("asd");
 	mainBox.readEnergy("");
@@ -48,7 +48,7 @@ int main() {
 	mainBox.CalcSurfaceDist();
 	mainBox.writeIP();
 	mainBox.corrolationOnGeo();
-	mainBox.writeSemblence();
+	mainBox.writeSemblence();*/
 
 	cin;
  	return 0;

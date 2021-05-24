@@ -3,7 +3,7 @@ import os, sys
 from distutils.core import setup, Extension
 from distutils import sysconfig
 
-cpp_args = ['-std=c++11', '-stdlib=libc++']
+cpp_args = ['-std=c++17', '-stdlib=libc++']
 
 sfc_module = Extension(
     'ctrm', sources=['source.cpp', "Geophone.cpp", "box.cpp", "ImageP.cpp","IpToGeoGeometry.cpp"],
@@ -13,7 +13,7 @@ sfc_module = Extension(
     )
 
 setup(
-    name='crp',
+    name='ctrm',
     version='1.0',
     description='Python package with superfastcode C++ extension (PyBind11)',
     ext_modules=[sfc_module],

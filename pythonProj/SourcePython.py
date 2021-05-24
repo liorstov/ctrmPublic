@@ -5,33 +5,21 @@ import mpl_toolkits.mplot3d.axes3d as p3
 from plotnine import *
 from dplython import * 
 
-def plot(df,number): 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    scatter = ax.scatter(df.x,df.y,df.radius,c = df.semb)
-    colorb = plt.colorbar(scatter)
-    colorb.ax.set_title("Semblance [-]")
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Radius')
-    ax.invert_zaxis()
-    ax.set_title('CTRM\nsample number: %d' % number)
-    
-    plt.show()
 
-
-a = ctrm.box(100,20,1,35,1,5)
-a.readCoord("")
-a.readVelo("")
-a.readEnergy("")
+a = ctrm.box(80,25,1,35,1,1,1000,0)
+a.readCoord("C:\\Users\\liors\\geoData\\for_lior\\memidion1\\aquisition38chan.txt")
+a.readVelo("C:\\Users\\liors\\geoData\\for_lior\\memidion1\\vrs.txt")
+a.readEnergy("C:\\Users\\liors\\geoData\\for_lior\\memidion1\\LB_40")
+a.getEnergy()
 a.createImageSpace()
 a.CalcSurfaceDist()
 a.corrolationOnGeo()
-#a.writeIP();
+pd.DataFrame(a.getEnergy()).groupby(0).count()
+a.writeIP();
 #a.writeSemblence();
 b= a.getSample()
 
-samples = pd.DataFrame({"x": b[:,0],"y":b[:,1], "t" :b[:,2], "radius":b[:,3],"semb":b[:,4]})
+samples = pd.DataFrame({"index": b[:,0],"x": b[:,1],"y":b[:,2], "t" :b[:,3], "radius":b[:,4],"semb":b[:,5]})
 #samples = samples[samples>0].dropna()
 samples
 sampleNumber = 0

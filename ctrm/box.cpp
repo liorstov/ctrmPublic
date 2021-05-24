@@ -2,75 +2,84 @@
 
 #include "box.h"
 namespace py = pybind11;
+const char* buildString = "This build XXXX was compiled at  " __DATE__ ", " __TIME__ ".";
 
 
 #include <sstream> 
-box::box(int traces,int lines,int startRad, int endRad, int _dx, int _dy):numlin(lines), numcen(traces), startRadius(startRad), endRadius(endRad), dyLines(_dy),dxTrace(_dx)
+box::box(int traces,int lines,int startRad, int endRad, int _dx, int _dy,int _nsamp,int _coordcy0):numcen(traces),numlin(lines),  startRadius(startRad), endRadius(endRad), dyLines(_dy),dxTrace(_dx),nsamp(_nsamp), coordcy0(_coordcy0)
 {
 	vGeophones.reserve(sizeof(Geophone) * 10000);
 	vImagePoints.reserve(sizeof(ImageP) * 10000);
-	
+
+	py::print(buildString);
 }
 //
 void box::readCoord(string file)
 {
 	ifstream coordinats;
-	coordinats.open("OneHorzShot4CTRM_R_Coord.txt");
+	coordinats.open(file);
 	if (coordinats.is_open()) {
 		py::print("coordinate file open");
 	}
 	else {
-		py::print("can't open coordinate file");
+		py::print("can't open coordinate file", file);
 	}
 	string line;
 	int index,x, y, z;
-	for (size_t i = 0; i < numrecl; i++)
-	{
-		for (size_t j = 0; j < ntrace; j++)
-		{
-			getline(coordinats, line);
+	while (std::getline(coordinats, line)) {
 
-			stringstream ss(line);
-			string num;
-			ss >> index >> x >> y >> z;
-			//py::print(index,x,y,z);
 
-			Geophone newGeo(index, x, y, z);
-			vGeophones.push_back(newGeo);
+		stringstream ss(line);
+		string num;
+		ss >> index >> x >> y >> z;
+		//py::print(index,x,y,z);
 
-			if (z < minimumDepth)
-				minimumDepth = float(z);
-		}
+		Geophone newGeo(index, x, y, z);
+		vGeophones.push_back(newGeo);
 
-	} 
+		if (z < minimumDepth)
+			minimumDepth = float(z);
+	}
+
+	py::print("number of geophones read: ", vGeophones.size());
 }
 
 void box::readVelo(string file)
 {
 	ifstream velo;
-	velo.open("vrs.txt");
+	velo.open(file);
 	std::pair<float,float> num;
+	if (velo.is_open()) {
+		py::print("velo file open");
+	}
+	else {
+		py::print("can't open velo file", file);
+	}
 	float radius =rmin;
 	while (velo >> num.second)
 	{
+		// insert a radius and its velocity
 		num.first = radius;
 		vRadiusVelo.push_back(num);
 		radius += dr;
+		py::print(num);
 	}
 }
 
 void box::readEnergy(string file)
 {
 	ifstream Ener;
-	Ener.open("Zc.nor",ios::binary);
+	Ener.open(file,ios::binary);
 	int serialNumber{ 0 }, currentGeo{ 0 };
 	float value;
+
 	while (Ener.read(reinterpret_cast<char*>(&value), sizeof(value)) && currentGeo < vGeophones.size())
 	{
 		vGeophones[currentGeo].U.push_back((value));
 		currentGeo = ++serialNumber / nsamp;
 	}
 }
+
 
 void box::createImageSpace()
 {
@@ -87,7 +96,7 @@ void box::createImageSpace()
 
 }
 
-float box::getIP(int point, int sample)
+int box::getIP(int point, int sample)
 {
 	return std::get<0>(vImagePoints[point].SampleSemblance[sample]);
 }
@@ -102,8 +111,9 @@ std::vector<int> box::getCoord()
 }
 
 float box::getGeophoneEnergy(int index, int timeDiff)
-{	
-	return vGeophones[size_t(index) - 1].U[size_t(timeDiff)-1];
+{
+	return vGeophones[size_t(index) - 1].U[size_t(timeDiff) - 1];
+	//return vGeophones[size_t(index) - 1].U[size_t(timeDiff)-1];
 }
 
 float box::getGeoZ(int x, int y) {
@@ -182,8 +192,7 @@ void box::corrolationOnGeo()
 	auto start = std::chrono::high_resolution_clock::now();
 
 	float  S{ 0 }, SS{ 0 }, d{ 0 }, f1{ 0 }, f2{ 0 }, fCorrolation, geoEnergy{ 0 }, progress{ 0 }, totalIterations{ 0 };
-	int timeDiff, nTotalTraces{ 0 }, totalSize{ int(vImagePoints.size()) }, i{ 0 };
-
+	int timeDiff{0}, nTotalTraces{ 0 }, totalSize{ int(vImagePoints.size()) }, i{ 0 };
 	for (auto& Ip : vImagePoints)
 	{
 		for (int radius = 0; radius <= endRadius-startRadius; radius++)
@@ -200,15 +209,21 @@ void box::corrolationOnGeo()
 					nTotalTraces = 0;
 					for (auto& IpGeo : Ip.IpGeoCalc)
 					{
+						//py::print(Ip.IPindex, radius, sample, velocity, IpGeo.GeoIndex, timeDiff);
+						
 						// the time for the current speed
 						timeDiff = sample + IpGeo.RadiusTimeValues[radius].VelocityRangeTimeDelta[velocity].timeDelta;
-
+						
+						
 						// check if inside the sample frame
-						if (timeDiff >= nsamp || timeDiff <= 0 || IpGeo.GeoIndex > numrecl * ntrace || IpGeo.surfaceDist > offmax) 
+						if (timeDiff >= nsamp || timeDiff <= 0 || IpGeo.surfaceDist > offmax) 
 							continue;
 						
-						// get the energy from the input according to geophone number and time difference
-						geoEnergy = getGeophoneEnergy(IpGeo.GeoIndex, int(timeDiff));
+
+						
+							// get the energy from the input according to geophone number and time difference
+							geoEnergy = getGeophoneEnergy(IpGeo.GeoIndex, int(timeDiff));
+						
 						// samblence
 						S += geoEnergy;
 						SS += powf(geoEnergy, 2);
@@ -290,6 +305,31 @@ Eigen::MatrixXd box::getSample()
 	}
 
 	py::print(i);
+	return ret;
+}
+
+Eigen::MatrixXd box::getEnergy()
+{
+	Eigen::MatrixXd ret(vGeophones.size() * vGeophones[0].U.size(), 5);
+	py::print("writing", vGeophones.size() * vGeophones[0].U.size(), "records");
+
+	auto i{ 0 }, stamp{ 0 };
+	std::pair<int, float> energy;
+	for (auto const& Geo : vGeophones)
+	{
+		stamp = 0;
+		for (auto const& energy : Geo.U)
+		{
+			ret(i, 0) = Geo.index;
+			ret(i, 1) = Geo.x;
+			ret(i, 2) = Geo.y;
+			ret(i, 3) = Geo.z;
+			ret(i, 4) = energy;
+			++i;
+		}
+	}
+
+
 	return ret;
 }
 
