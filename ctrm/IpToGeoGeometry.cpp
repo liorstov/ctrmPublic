@@ -50,6 +50,6 @@ RadiusTimeDelta::RadiusTimeDelta(float _radius) : radius(_radius)
 {
 }
 
-DeltaVelocity::DeltaVelocity(float _actualVelo, int _timeDelta) : actualVelocity(_actualVelo), timeDelta(_timeDelta)
+DeltaVelocity::DeltaVelocity(float _actualVelo, float _timeDelta) : actualVelocity(_actualVelo), timeDelta(_timeDelta)
 {
 }

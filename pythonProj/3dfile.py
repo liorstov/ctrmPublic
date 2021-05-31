@@ -3,16 +3,23 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output,State
-import plotly.graph_objects as go # or plotly.express as px
+import plotly.graph_objects as go , plotly.io as pio# or plotly.express as px
 import pandas as pd
 import numpy as np
+from mpl_toolkits.mplot3d import axes3d
 
+pio.templates.default = 'plotly_white' 
 #samples = pd.read_pickle("c:\\users\\liors\\source\\repos\\ctrm\\ctrm\\sample.pkl")
-samples = pd.read_pickle("c:\\users\\liors\\source\\repos\\ctrm\\ctrm\\memadion.pkl")
-samples['location'] = samples.groupby(["x" ,"y","radius"]).ngroup()
+samples = pd.read_pickle("c:\\users\\liors\\source\\repos\\ctrm\\ctrm\\grail.pkl")
+RGlocations = pd.read_csv("C:\\Users\\liors\\source\\repos\ctrm\\for_lior\\red_grail_locations.csv").sort_values(["X"],ignore_index=True)
+RGlocations =RGlocations.loc[RGlocations.name.str.contains("GA")].reset_index()
+RGlocations["Xfix"] = RGlocations.X-RGlocations.X.min()
+RGlocations["Yfix"] = RGlocations.Y-RGlocations.Y.min()
+RGlocations["Zfix"] = RGlocations.alt-RGlocations.alt.min()
 
-samples = samples[samples.t<500].dropna()
-grouped = samples.groupby(['location',"x" ,"y","radius"]).agg({"semb": ['mean','min','max','median', 'std' ]}).droplevel(axis=1, level=0).reset_index()
+
+grouped = samples.groupby(["IPindex","x" ,"y","radius"]).agg({"semb": ['mean','min','max','median', 'std' ]}).droplevel(axis=1, level=0).reset_index()
+
 #data = [go.Scatter3d(x = grouped.x,y=grouped.y,z=grouped.radius, marker=dict(size=12, color=grouped.semb, colorscale='Reds', opacity=0.5))]
 app = dash.Dash(__name__, external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"])
 
@@ -55,18 +62,43 @@ app.layout = html.Div([
     html.Div([
         html.Div(dcc.Graph(id = "2dplot"),style={'display': 'inline-block'}),
         html.Div(dcc.Graph(id = "3dplot",figure = px.scatter_3d()),style={'display': 'inline-block'}),    
-        html.Div(dcc.Slider(id = "bar", value = 0,max = samples.semb.max(), step = samples.semb.max()/10,min = 0,updatemode='drag',vertical=True),style={'display': 'inline-block'})
-           ]),
-    dcc.Dropdown(id = "aggregation-dropdown",options=[{'label': 'mean', 'value': 'mean'},  {'label': 'maximum', 'value': 'max'},{'label': 'std', 'value': 'std'},{'label': 'median', 'value': 'median'}], value='mean', clearable=False),
+        html.Div(dcc.Slider(id = "bar", value = 0,max = samples.semb.max(), step = samples.semb.max()/10,min = 0,updatemode='drag',vertical=True),style={'display': 'inline-block'}),
+        html.Div(dcc.Dropdown(id = "aggregation-dropdown",options=[{'label': 'mean', 'value': 'mean'},  {'label': 'maximum', 'value': 'max'},{'label': 'std', 'value': 'std'},{'label': 'median', 'value': 'median'}], value='mean', clearable=False),style={'display': 'inline-block', 'width': "5%"}),
+        html.Button('Submit', id='submit-val', n_clicks=0)
+        ]),
+    
     dcc.Input(id="avrWindow", type = "number", placeholder="window size",min = 1,max = 10,value = 1),
-    html.Button('Submit', id='submit-val', n_clicks=0),
-    dcc.Store(id = "window")])
+    
+    dcc.Graph(id = "ImagePointView"),
+    dcc.Store(id = "radius")])
     
     #html.Div([dcc.Slider(id='radius',min=1,max=35,value=1,marks={str(rad): str(rad) for rad in range(1,35)},step=None,vertical=True)]
     #         ,style={'display': 'inline-block'})],style={'display': 'block','height':'100%'})
 
 @app.callback(
+    Output("ImagePointView", "figure"),
+    Input('3dplot', 'clickData'),
+    Input('2dplot', 'clickData'))
+def updateIP(selectedPoint,selectedPoint2):
+    callbackVal = dash.callback_context.triggered[0]
+    print(callbackVal)
+    x=y=radius =radius= 0;
+    if callbackVal['value'] is not None:   
+        x,y = callbackVal['value']['points'][0]['x'],callbackVal['value']['points'][0]['y']
+        if ((callbackVal["prop_id"]== '3dplot.clickData') ):
+            radius = callbackVal['value']['points'][0]['customdata'][0]
+        else:
+            radius = callbackVal['value']['points'][0]['customdata']
+
+        print(x,y,radius)
+    target = samples[(samples.x == x)&(samples.y == y)&(samples.radius==radius)]
+    title = "semblance for x: %d, y: %d, depth: %d" %(x,y,radius)
+    fig = px.line(target,'t', 'semb',title = title)
+    return(fig)
+
+@app.callback(
     Output('2dplot', 'figure'),
+    Output('radius', 'data'),
     Input('3dplot', 'clickData'),
     Input('3dplot',"figure"),
     State("aggregation-dropdown","value"))    
@@ -82,11 +114,13 @@ def update_figure(selected_rad,dfig,aggregation):
         y=filtered["y"],
         zmin = min(grouped[aggregation]),
         zmax = max(grouped[aggregation]),
-        colorscale=colorsc,zsmooth = 'best'))
-    fig2d.update_layout(title = ("radius: %d" %radius))
+        colorscale=colorsc,zsmooth = 'best', customdata = np.ones(filtered.size)*radius))
+    fig2d.add_trace(go.Scatter(x=RGlocations["Xfix"], y=RGlocations["Yfix"],mode = 'markers', marker = dict(color = "Blue")))
+    #fig2d = px.imshow(filtered.pivot_table(index = 'y', columns = 'x',values = aggregation),color_continuous_scale =colorsc,origin = "lower",aspect = "auto", labels = {'customdata':np.ones(filtered.size)*radius})
+    fig2d.update_layout(title = ("radius: %d" %radius), xaxis = {"title":"x"},yaxis = {"title":"y"})
     title="Plot Title"
     #fig.add_mesh3d(x=[0,0,int(max(grouped.x)),int(max(grouped.x))],y=[0,int(max(grouped.y)),int(max(grouped.y)),0],z=[selected_rad,selected_rad,selected_rad,selected_rad])
-    return(fig2d)
+    return(fig2d,{'radius':radius})
 @app.callback(
     Output("3dplot", "figure"),
     Output("bar", "max"),
@@ -95,19 +129,12 @@ def update_figure(selected_rad,dfig,aggregation):
     Input("bar","value"),
     State("aggregation-dropdown","value"),
     State("avrWindow","value"))
-def update_3dplot(clicks,bar, selectedAgg,window):
-    #grouped = samples.groupby(["x" ,"y","radius"])["semb"].rolling(window=window).mean().reset_index()
-    
-    #if selectedAgg=="mean":        
-    #    grouped = grouped.mean
-    #elif selectedAgg == "max":
-    #    print(selectedAgg)
-    #    grouped = grouped.max
-    #elif selectedAgg == "STD":
-    #    grouped = grouped.std
+def update_3dplot(clicks,bar, selectedAgg,window):   
 
     title = "Results are aggregated with: %s\n semblance > %s " %(selectedAgg, bar)
-    fig = px.scatter_3d(grouped, x = 'x', y='y',z='radius', color = selectedAgg,color_continuous_scale = 'Reds', opacity = 0.3, title = title ,template="plotly_white",size = (grouped[selectedAgg].ravel()>bar)*1)
+
+    fig = px.scatter_3d(grouped, x = 'x', y='y',z='radius', color = selectedAgg,color_continuous_scale = 'Reds', opacity = 0.3, title = title ,template="plotly_white",size = (grouped[selectedAgg].ravel()>bar)*1, hover_data = {'customdata':grouped.radius})
+    #fig = go.Figure(go.Scatter3d(x = grouped.x, y=grouped.y,z=grouped.radius ,marker=dict(size = (grouped[selectedAgg].ravel()>bar)*5,color = grouped[selectedAgg], colorscale= "Reds"),mode = "markers"))
     fig.update_scenes(zaxis_autorange="reversed",yaxis_autorange="reversed",xaxis_autorange="reversed")
     fig.update_traces(marker = dict(line=dict(width=0)))
     return (fig, grouped[selectedAgg].max(),grouped[selectedAgg].max()/10 )

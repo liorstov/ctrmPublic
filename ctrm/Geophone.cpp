@@ -1,6 +1,6 @@
 #include "Geophone.h"
 
-Geophone::Geophone(int _ind,int _x, int _y, int _z)
+Geophone::Geophone(int _ind, float _x, float _y, float _z)
 {
 	index = _ind;
 	x = _x;

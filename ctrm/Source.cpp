@@ -6,13 +6,14 @@
 #include <pybind11/stl_bind.h>
 #include <pybind11/eigen.h>
 namespace py = pybind11;
-
 PYBIND11_MODULE(ctrm, m) {
-
+	
 	py::class_<box> c(m, "box");
-	c.def(py::init<int,int,int,int,int,int,int,int>(),py::arg("traces"),py::arg("lines"),  py::arg("startRad"), py::arg("endRad"), py::arg("dx"), py::arg("dy"), py::arg("nsamp"), py::arg("coordcy0"))
+	c.def(py::init<int,int,int,int,int,int,int,int, int, int>(),py::arg("xmax"),py::arg("ymax"),  py::arg("startRad"), py::arg("endRad"), py::arg("dx"), py::arg("dy"), py::arg("nsamp"), py::arg("coordcy0"), py::arg("vrange"), py::arg("dv"))
 		.def("readCoord", &box::readCoord)
 		.def("readVelo", &box::readVelo)
+		.def("setEnergy", &box::setEnergy)
+		.def("setCoord", &box::setCoord)
 		.def("readEnergy", &box::readEnergy)
 		.def("createImageSpace", &box::createImageSpace)
 		.def("CalcSurfaceDist", &box::CalcSurfaceDist)

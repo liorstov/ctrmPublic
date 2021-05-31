@@ -4,8 +4,9 @@
 class Geophone
 {
 public:
-	Geophone(int,int, int, int);
-	int index, x, y, z;
+	Geophone(int, float, float, float);
+	int index;
+	float x, y, z;
 	std::vector<float> U;
 };
 

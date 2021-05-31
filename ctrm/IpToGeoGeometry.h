@@ -6,9 +6,9 @@
 #include <sstream>
 struct DeltaVelocity
 {
-	DeltaVelocity(float, int);
+	DeltaVelocity(float, float);
 	float actualVelocity{ 0 };
-	int timeDelta{ 0 };
+	float timeDelta{ 0 };
 };
 struct RadiusTimeDelta
 {

@@ -26,6 +26,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="3dfile.py" />
+    <Compile Include="HitSearch.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="SourcePython.py" />
     <Compile Include="tests.py" />
   </ItemGroup>

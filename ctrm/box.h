@@ -3,6 +3,7 @@
 #include <tuple>
 #include <iostream>
 #include <string>
+#include <stdio.h>
 #include "Geophone.h"
 #include "ImageP.h"
 #include "IpToGeoGeometry.h"
@@ -10,6 +11,9 @@
 #include <cmath>
 #include <chrono>
 #include <Eigen/Dense>
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
 using namespace std;
 class box
 {
@@ -17,8 +21,10 @@ class box
 	std::vector<ImageP> vImagePoints;
 
 public:
-	box(int, int,int,int,int,int,int,int);
+	box(int, int,int,int,int,int,int,int, int, int);
 	void readCoord(string file);
+	void setCoord(Eigen::MatrixXf);
+	void setEnergy(Eigen::MatrixXf);
 	void readVelo(string file);
 	void readEnergy(string file);
 	Eigen::MatrixXd getEnergy();
@@ -43,8 +49,8 @@ public:
 	float numrecl = 1;
 	float numsh = 1;
 	float numshli = 1;
-	int numcen = 5;
-	int numlin = 5;
+	int xmax = 5;
+	int ymax = 5;
 	int dxTrace = 1;
 	int dyLines = 10;
 	int coordcy0 = 45;
@@ -58,18 +64,16 @@ public:
 	float rmax = 35;
 	float dr = 1;
 	float v0 = 500;
-	float xmin = 0;
-	float xmax = 999;
 	float dt = (0.500000f)/1000.0f;
 	float resamp = 1;
 	float vmin = 9999;
 	float vmax = 9999;
-	float dv = 20;
+	int dv = 30;
 	float itim1 = 9999;
 	float itim2 = 9999;
 	float offmin = 0;
 	float offmax = 999;
-	float vRange = 100;
+	int vRange = 150;
 	
 };
 
