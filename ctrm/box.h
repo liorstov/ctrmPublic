@@ -11,9 +11,14 @@
 #include <cmath>
 #include <chrono>
 #include <Eigen/Dense>
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-namespace py = pybind11;
+
+#include <algorithm>
+#include <execution>
+#include <thread>
+#include <ppl.h>
+#include <omp.h>
+
+
 using namespace std;
 class box
 {
@@ -21,48 +26,54 @@ class box
 	std::vector<ImageP> vImagePoints;
 
 public:
-	box(int, int,int,int,int,int,int,int, int, int);
+	box(int traces, int lines, int tracesMin, int linesMin, int startRad, int endRad, int _dx, int _dy, int _jbeg, int _jend, int _vrange, int _dv, int _minDist, int _windowSize, int _dr);
 	void readCoord(string file);
-	void setCoord(Eigen::MatrixXf);
-	void setEnergy(Eigen::MatrixXf);
-	void readVelo(string file);
+	int setCoord(Eigen::MatrixXf);
+	int setEnergy(Eigen::MatrixXf);
+	void setVelo(Eigen::MatrixXf);
 	void readEnergy(string file);
+	void readVelo(string file);
 	Eigen::MatrixXd getEnergy();
 	void createImageSpace();
-	int getIP(int point, int sample);
 	std::vector<int> getCoord();
 	float getGeophoneEnergy(int , int );
 
 	float getGeoZ(int z, int y);
 
 	void CalcSurfaceDist();
+	void CalcTimeDeltaOnly();
 
-	void corrolationOnGeo();
-	float calcAvarageVelo(float begin, float end);
+	//void corrolationOnGeo(bool RP);
+	float calcAvarageVelo(float , float);
 	Eigen::MatrixXd  getSample();
-	void writeIP();
+	//Eigen::MatrixXd  getIP();
+	//void writeIP();
 	void writeSemblence();
+	void writeSemblenceNpy(std::string file);
+	void writeTimeDeltasNpy(std::string file);
 	std::vector<pair<float,float>> vRadiusVelo;
-	
+	float highestEnergy{ 0.0f };
 	float minimumDepth = FLT_MAX;
 	float ntrace = 72;
 	float numrecl = 1;
 	float numsh = 1;
 	float numshli = 1;
-	int xmax = 5;
-	int ymax = 5;
+	float xmax = 5;
+	float xmin = 5;
+	float ymin = 5;
+	float ymax = 5;
 	int dxTrace = 1;
 	int dyLines = 10;
-	int coordcy0 = 45;
-	int nsamp = 1000;
-		
-	int jbeg = 0;
+	int nsamp=1000;
+	int windowSize;
+	int jbeg = 400;
 	int jend = 700;
+	int minDist = 1000;
 	int startRadius = 1;
 	int endRadius = 5;
 	float rmin = 1;
 	float rmax = 35;
-	float dr = 1;
+	int dr = 1;
 	float v0 = 500;
 	float dt = (0.500000f)/1000.0f;
 	float resamp = 1;
@@ -74,6 +85,7 @@ public:
 	float offmin = 0;
 	float offmax = 999;
 	int vRange = 150;
+	int signalPosition = 0;
 	
 };
 
