@@ -10,11 +10,12 @@
 #include <fstream>
 #include <cmath>
 #include <chrono>
-
+#include "progressbar.hpp"
 #include <algorithm>
 #include <execution>
 #include <thread>
 #include <omp.h>
+#include "npy.hpp"
 
 
 using namespace std;
