@@ -1,1 +1,1 @@
-C:\\Users\\liors\\source\\repos\\ctrm\\x64\\Release\\ctrm.exe 60 1 30 -40 20 39 1 1 -1 -1 100 20 100 4 4 C:\\Users\\liors\\source\\repos\\ctrm\\ctrm\\aquisition38chan.txt C:\\Users\\liors\\source\\repos\\ctrm\\ctrm\\vrsMemadion.txt C:\\Users\\liors\\source\\repos\\ctrm\\ctrm\\MemadionData\\LB_28N ent
+./build/box 60 1 30 -40 20 39 1 1 -1 -1 100 20 100 4 4 testData/aquisition38chan.txt testData/vrsMemadion.txt testData/LB_28 ent

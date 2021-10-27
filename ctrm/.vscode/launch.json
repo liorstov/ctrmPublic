@@ -8,7 +8,7 @@
             "name": "g++ - Build and debug active file",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${fileDirname}/box",
+            "program": "${workspaceFolder}/build/box",
             "args": [60 1 30 -40 20 39 1 1 -1 -1 100 20 100 4 4 C:\\Users\\liors\\source\\repos\\ctrm\\ctrm\\aquisition38chan.txt C:\\Users\\liors\\source\\repos\\ctrm\\ctrm\\vrsMemadion.txt C:\\Users\\liors\\source\\repos\\ctrm\\ctrm\\MemadionData\\LB_28N ent],
             "stopAtEntry": true,
             "cwd": "${fileDirname}",
