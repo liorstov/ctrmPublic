@@ -41,7 +41,7 @@ void box::readCoord(string file)
 		std::cout << ("coordinate file open ") << file << endl;
 	}
 	else {
-		std::cout << "can't open coordinate file"<< file<< endl;
+		std::cout << "can't open coordinate file "<< file<< endl;
 	}
 	string line;
 	int index,x, y, z;

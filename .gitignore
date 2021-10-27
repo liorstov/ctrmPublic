@@ -2,8 +2,5 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/.vs/ctrm/v16
-/x64/release-py
-*.m
-*.pkl
-*.txt
+
+
