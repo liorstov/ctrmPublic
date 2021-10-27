@@ -6,7 +6,8 @@
 #include <sstream>
 struct DeltaVelocity
 {
-	DeltaVelocity(float, float);
+	DeltaVelocity(float, float,float);
+	float referenceVelocity {0};
 	float actualVelocity{ 0 };
 	float timeDelta{ 0 };
 };
@@ -21,13 +22,14 @@ struct RadiusTimeDelta
 class IpToGeoGeometry
 {
 public:
-	IpToGeoGeometry(int _index, float _surface, float _betta, float _verD);
+	IpToGeoGeometry(int _index, float _horizontal,float _vertival, float _distance, float xdist,float ydist);
 	void calculateTimeDelta(std::vector<std::pair<float, float>> const& velocities);
 	float calcAvarageVelo(std::vector<std::pair<float, float>> const& velocities, float begin, float end);
 	std::string writeInfo(int IpIndex);
-	float surfaceDist, bettaAngle, verDepth;
+	void RP();
+	float horizontal, vertical, distance,xdist,ydist ,RadPatternPwave , RadPatternSwave;
 	int GeoIndex;
-	std::vector<RadiusTimeDelta> RadiusTimeValues;
+	std::vector<DeltaVelocity> VelocityRangeTimeDelta;
 	float dt = 0.500000;
 
 };
