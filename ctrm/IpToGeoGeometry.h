@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <math.h>
 struct DeltaVelocity
 {
 	DeltaVelocity(float, float,float);

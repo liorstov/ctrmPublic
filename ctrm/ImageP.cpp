@@ -18,13 +18,13 @@ char* ImageP::toChar()
 {
 	char * array = new char[sizeof(float) * (3+ samples.size())];
 	char buffer[sizeof(float)*3];
-	sprintf_s(buffer, sizeof(buffer), "%.4f%.4f%.4f", x,y,z);
-	sprintf_s(buffer, sizeof(buffer), "%f", y);
-	sprintf_s(buffer, sizeof(buffer), "%f", z);
+	sprintf(buffer, "%.4f%.4f%.4f", x,y,z);
+	sprintf(buffer, "%f", y);
+	sprintf(buffer, "%f", z);
 
 	for(auto &sample : this->samples)
 	{
-		sprintf_s(array,  sizeof array, sample.toChar());
+		sprintf(array, sample.toChar());
 	}
 	return array;
 }
@@ -40,8 +40,8 @@ sample::sample(int number, int vrange, int dv): sampN(number),semblance(0.0f)
 char* sample::toChar()
 {
 	char array[sizeof(int) + sizeof(float)];
-	sprintf_s(array, sizeof array,"%d", this->sampN);
-	sprintf_s(array, sizeof array, "%f", this->semblance);
+	sprintf(array, "%d", this->sampN);
+	sprintf(array, "%f", this->semblance);
 	return array;
 }
 

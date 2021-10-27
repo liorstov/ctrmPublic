@@ -2,9 +2,9 @@
 
 #include "box.h"
 #include <execution> 
-#include "ProgressBar.hpp"
+#include "progressbar/include/progressbar.hpp"
 #include <omp.h>
-#include "npy.hpp"
+#include "libnpy/npy.hpp"
 
 const char* buildString = "This build XXXX was compiled at  " __DATE__ ", " __TIME__ ".";
 
@@ -64,46 +64,6 @@ void box::readCoord(string file)
 	}
 
 	std::cout << "number of geophones read: "<<  vGeophones.size()<< endl;
-}
-
-int box::setCoord(Eigen::MatrixXf CoordArray)
-{
-	int  z{0};
-
-	for (int index = 0; index < CoordArray.rows(); index++)
-	{
-		Geophone newGeo(index, CoordArray(index,0), CoordArray(index,1), CoordArray(index,2));
-		vGeophones.push_back(newGeo);
-		//std::cout << (newGeo.index,CoordArray(index, 0), CoordArray(index, 1), CoordArray(index, 2));
-		
-	}
-	return int(vGeophones.size());
-}
-
-int box::setEnergy(Eigen::MatrixXf  EnergyArray)
-{
-	
-	for (size_t sample = 0; sample < EnergyArray.rows(); sample++)
-	{
-		for (size_t geo = 0; geo < EnergyArray.cols(); geo++)
-		{
-			
-			vGeophones.at(geo).U.push_back(EnergyArray(sample,geo));
-		}
-	}
-	nsamp = EnergyArray.rows();
-	return int(vGeophones.at(0).U.size());
-	
-}
-
-void box::setVelo(Eigen::MatrixXf veloArray)
-{
-	int i{ 0 };
-	for (size_t Depth = 0; Depth < veloArray.rows(); Depth++)
-	{
-		vRadiusVelo.push_back(std::pair<int, float>(i++, veloArray(Depth,0)));
-		//std::cout << (vRadiusVelo.back().first, vRadiusVelo.back().second);
-	}
 }
 
 
@@ -228,8 +188,8 @@ void box::CalcSurfaceDist()
 {
 	int counter{ 0 };
 	std::cout << "calculating Ip to Geophone distances" << endl;
-	progresscpp::ProgressBar progressBar(int(vImagePoints.size()), 70);
-	#pragma omp parallel default(none) shared(progressBar,counter)
+	ProgressBar pBar(int(vImagePoints.size()), 70);
+	#pragma omp parallel default(none) shared(pBar,counter)
 	{
 		float  distance{ 0 }, surface{ 0 }, VVa{ 0 }, VV, CurrectVelocity, IpDepth{ 0 }, ydist{ 0 }, xdist{ 0 }, geoEnergy{ 0 };
 		float  minusCounter{ 1 }, plusCounter{ 1 },SembSize{ 0 },totalGeophones{ 0 }, SemblaneWeight{ 1 }, deltaTime{ 0 }, S{ 0 }, SS{ 0 }, f1{ 0 }, f2{ 0 }, fCorrolation{ 0 }, windowAvr{ 0 }, currentSemblance{ 0 };
@@ -336,16 +296,16 @@ void box::CalcSurfaceDist()
 				sample.semblance = f1/f2;
 			}
 			counter++;
-			++progressBar;
+			++pBar;
 			if (counter % int(totalSize * 0.01) == 0) {
 				//std::cout<< counter << " out of "<< totalSize<<  endl;
 				#pragma  omp critical
-				progressBar.display();
+				pBar.display();
 			}
 		}
 		
 	}
-	progressBar.done();
+	pBar.done();
 	std::cout << "done" << endl;
 }
 void box::CalcTimeDeltaOnly()
@@ -554,29 +514,7 @@ float box::calcAvarageVelo(float IpDepth, float GeoDepth)
 //	return ret;
 //}
 
-Eigen::MatrixXd box::getEnergy()
-{
-	Eigen::MatrixXd ret(vGeophones.size() * vGeophones[0].U.size(), 5);
-	std::cout << ("writing", vGeophones.size() * vGeophones[0].U.size(), "records");
 
-	auto i{ 0 }, stamp{ 0 };
-	std::pair<int, float> energy;
-	for (auto const& Geo : vGeophones)
-	{
-		stamp = 0;
-		for (auto const& energy : Geo.U)
-		{
-			ret(i, 0) = Geo.index;
-			ret(i, 1) = Geo.x;
-			ret(i, 2) = Geo.y;
-			ret(i, 3) = Geo.z;
-			ret(i, 4) = energy;
-			++i;
-		}
-	}
-
-	return ret;
-}
 //
 //void box::writeIP()
 //{
@@ -598,30 +536,7 @@ Eigen::MatrixXd box::getEnergy()
 //
 //}
 //
-void box::writeSemblence()
-{
-	auto i{ 0 };
-	Eigen::MatrixXd ret(vImagePoints.size() * vImagePoints[0].samples.size(), 5);
-	std::ofstream myfile;
-	myfile.open("samb.csv", ios::binary);
-	if (myfile.is_open()) {
-		std::cout << "write to file" << vImagePoints.size() * vImagePoints[0].samples.size() << endl;
 
-		for (auto& Ip : vImagePoints) {
-			for (auto& sample : Ip.samples) {
-				ret(i, 0) = Ip.x;
-				ret(i, 1) = Ip.y;
-				ret(i, 2) = Ip.z;
-				ret(i, 3) = sample.sampN;
-				ret(i, 4) = sample.semblance;
-				++i;
-			}
-			
-		}
-		myfile << ret;
-		myfile.close();
-	}
-}
 void box::writeSemblenceNpy(std::string file)
 {
 

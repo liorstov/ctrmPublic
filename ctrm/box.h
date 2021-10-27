@@ -10,12 +10,10 @@
 #include <fstream>
 #include <cmath>
 #include <chrono>
-#include <Eigen/Dense>
 
 #include <algorithm>
 #include <execution>
 #include <thread>
-#include <ppl.h>
 #include <omp.h>
 
 
@@ -28,12 +26,9 @@ class box
 public:
 	box(int traces, int lines, int tracesMin, int linesMin, int startRad, int endRad, int _dx, int _dy, int _jbeg, int _jend, int _vrange, int _dv, int _minDist, int _windowSize, int _dr);
 	void readCoord(string file);
-	int setCoord(Eigen::MatrixXf);
-	int setEnergy(Eigen::MatrixXf);
-	void setVelo(Eigen::MatrixXf);
+	
 	void readEnergy(string file);
 	void readVelo(string file);
-	Eigen::MatrixXd getEnergy();
 	void createImageSpace();
 	std::vector<int> getCoord();
 	float getGeophoneEnergy(int , int );
@@ -45,7 +40,6 @@ public:
 
 	//void corrolationOnGeo(bool RP);
 	float calcAvarageVelo(float , float);
-	Eigen::MatrixXd  getSample();
 	//Eigen::MatrixXd  getIP();
 	//void writeIP();
 	void writeSemblence();
@@ -53,7 +47,7 @@ public:
 	void writeTimeDeltasNpy(std::string file);
 	std::vector<pair<float,float>> vRadiusVelo;
 	float highestEnergy{ 0.0f };
-	float minimumDepth = FLT_MAX;
+	float minimumDepth = __FLT_NORM_MAX__;
 	float ntrace = 72;
 	float numrecl = 1;
 	float numsh = 1;

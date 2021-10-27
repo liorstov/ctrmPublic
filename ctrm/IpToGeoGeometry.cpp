@@ -38,7 +38,7 @@ float IpToGeoGeometry::calcAvarageVelo(std::vector<std::pair<float, float>> cons
 std::string IpToGeoGeometry::writeInfo(int IpIndex)
 {
 	char res[100];
-	sprintf_s(res,100, "%d, %1.0f, %1.0f, %1.0f",  GeoIndex,this->horizontal, this->vertical,this->distance);
+	sprintf(res, "%d, %1.0f, %1.0f, %1.0f",  GeoIndex,this->horizontal, this->vertical,this->distance);
 	return(res);
 }
 
