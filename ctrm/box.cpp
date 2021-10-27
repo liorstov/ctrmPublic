@@ -1,10 +1,7 @@
 
 
 #include "box.h"
-#include <execution> 
-#include "progressbar/include/progressbar.hpp"
-#include <omp.h>
-#include "libnpy/npy.hpp"
+
 
 const char* buildString = "This build XXXX was compiled at  " __DATE__ ", " __TIME__ ".";
 
