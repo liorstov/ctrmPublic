@@ -8,35 +8,60 @@ SEED=42
 np.random.seed(SEED)
 
 
-def gen_a_shot(f, params, geophs, loc, t_span, v):
+def gen_a_shot(f, t0, params, geophs, loc, t_span, vp=None, vs=None):
     """
     given a geophoes geometry, a disturbance location and type,
     will generate a a timeline with only this disturbance
     :param f: a function describing the disturbance, of form f(t, *params)
+    :param t0: the time the disturbance occurs at
     :param params: a list of params to pass to f() after the time
     :param geophs: a numpy array containing the locations of the geophones
     :param loc: the location of the disturbance
     :param t_span: the amount of time the recorded in the shot
-    :param v: the speed of sound in the medium
+    :param vp: the speed of the pressure wave. If None, will be ignored.
+    :param vs: the speed of the sheer wave. If None, will be ignored.
     :return: a numpy array containing the shot data of the disturbance
     """
+    # make sure that we're working with some kind of wave
+    assert (vp is not None) or (vs is not None), "can't have both vp and vs being None"
     # save the number of geophones in memory
     n_geophs = geophs.shape[0]
     # find the distance of each geophone from the source
     dists = np.sqrt(((np.array([[loc[0], loc[1], loc[2]]] * n_geophs) - geophs)**2).sum(axis=1))
-    # find the time the disturbance takes to travel to each geophone
-    dt = dists / v
     # calculate the decay of the amplitude by the time it arrives to each geophone
     cos_phi = np.abs(geophs[:, 2] - loc[2]) / dists
     amps = cos_phi / (dists**2)
-    # create an object to hold the output data
-    shots = np.zeros((n_geophs, t_span[1] - t_span[0]))
-    for t in np.arange(t_span[0], t_span[1]):
-        shots[:, t] = amps*f(t-dt, * params)
+    # TODO: find max window size, after which the disturbance has decayed (simplifies computation)
+    # TODO: add sheer waves support
+    shots = np.zeros((dists.shape[0], t_span[1] - t_span[0]))
+    for v in [vp, vs]:
+        if v is not None:
+            shots += gen_shot_for_speed(f, v, dists, t_span, t0, amps, params)
     return shots
 
 
-def gen_shots(f, param_range, geophs, loc_range, N, max_subs, break_range, sub_range, v, seed=42):
+def gen_shot_for_speed(f, v, dists, t_span, t0, amps, params):
+    """
+    generate shot data for 1 speed mode
+    :param f: a function describing the disturbance, of form f(t, *params)
+    :param v: the speed of the waves in the medium
+    :param dists: the distances of the wave source from each sensor
+    :param t_span: the time span the experiment takes place in: [t_0, t_f]
+    :param t0: the time the disturbance occurs at
+    :param amps: the amplitude decay of the the signal to the sensor
+    :param params: additional parameters the source function takes
+    :return: shot data for each sensor as a numpy matrix
+    """
+    # find the time the disturbance takes to travel to each geophone
+    dt = dists / v
+    # create an object to hold the output data
+    shots = np.zeros((dists.shape[0], t_span[1] - t_span[0]))
+    for t in np.arange(t_span[0], t_span[1]):
+        shots[:, t] = amps * f(t - dt, t0, *params)
+    return shots
+
+
+def gen_shots(f, param_range, geophs, loc_range, N, max_subs, break_range, sub_range, vp=None, vs=None, seed=42):
     """
     generate a sequence of disturbances and record shot data
     :param f: a function describing the disturbance, of form f(t, t0, *params)
@@ -49,11 +74,13 @@ def gen_shots(f, param_range, geophs, loc_range, N, max_subs, break_range, sub_r
     :param max_subs: how many disturbances at most can make each disturbance
     :param break_range: a range of time to wait between disturbances
     :param sub_range: a range of time to wait between sub disturbances
-    :param v: the speed of sound in the medium
+    :param vp: speed of pressure waves (if None, will be ignored)
+    :param vs: speed of sheer waves (if None, will be ignored)
     :param seed: used to set the randomness of the model
     :return: a numpy array containing the shot data of the disturbance
     """
     # calculate the moment each disturbance takes place, and total sim time
+    # TODO: implement seed usage, or delete it as an input
     T = 0
     dis_times = []
     dis_dt = []
@@ -88,9 +115,7 @@ def gen_shots(f, param_range, geophs, loc_range, N, max_subs, break_range, sub_r
         y_res[:, tt0:ttf] = np.array([[1] + loc] * (ttf - tt0)).T
 
         for disturb_t in disturb_range:
-            ff = lambda t: f(t, disturb_t, *params)
-            outp += gen_a_shot(ff, [], geophs, loc, [0, T], v)
-
+            outp += gen_a_shot(f, disturb_t, params, geophs, loc, [0, T], vp=vp, vs=vs)
     return outp, y_res
 
 
@@ -139,7 +164,8 @@ def get_args():
     parser.add_argument("--s0", help="start of the grid", type=float)
     parser.add_argument("--sf", help="end of the grid", type=float)
     parser.add_argument("--ds", help="grid resolution", type=float)
-    parser.add_argument("-v", help="speed of sound", type=float, default=300.0)
+    parser.add_argument("-vp", help="speed of pressure waves", type=float, default=None)
+    parser.add_argument("-vs", help="speed of sheer waves", type=float, default=None)
     parser.add_argument("-N", help="number of disturbances", type=int)
     parser.add_argument("-z", help="a list of z values for the geophone grid", type=float, default=0.0, nargs='+')
     parser.add_argument("--z0", help="start of disturbance depth range", type=float, default=0.0)
@@ -187,7 +213,8 @@ def main():
                              max_subs=args.max_subs,
                              break_range=[args.break_range0, args.break_rangef],
                              sub_range=[args.sub_range0, args.sub_rangef],
-                             v=args.v,
+                             vp=args.vp,
+                             vs=args.vs,
                              seed=args.SEED)
     if args.show_data:
         print(f"the shape of data is {data.shape}")
