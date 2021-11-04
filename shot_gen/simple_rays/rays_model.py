@@ -3,6 +3,7 @@ from tqdm import tqdm
 from matplotlib import pyplot as plt
 import argparse
 import os
+import random
 
 SEED=42
 np.random.seed(SEED)
@@ -61,10 +62,10 @@ def gen_shot_for_speed(f, v, dists, t_span, t0, amps, params):
     return shots
 
 
-def gen_shots(f, param_range, geophs, loc_range, N, max_subs, break_range, sub_range, vp=None, vs=None, seed=42):
+def gen_shots(funcs, param_range, geophs, loc_range, N, max_subs, break_range, sub_range, vp=None, vs=None, seed=42):
     """
     generate a sequence of disturbances and record shot data
-    :param f: a function describing the disturbance, of form f(t, t0, *params)
+    :param funcs: a list of source functions of the form f(t, t0, *params)
     :param param_range: 2 lists describing the range of params that can be passed to to f()
     after the time variable: [params_0, params_f]
     :param geophs: a numpy array containing the locations of the geophones
@@ -115,6 +116,7 @@ def gen_shots(f, param_range, geophs, loc_range, N, max_subs, break_range, sub_r
         y_res[:, tt0:ttf] = np.array([[1] + loc] * (ttf - tt0)).T
 
         for disturb_t in disturb_range:
+            f = random.choice(funcs)
             outp += gen_a_shot(f, disturb_t, params, geophs, loc, [0, T], vp=vp, vs=vs)
     return outp, y_res
 
@@ -161,29 +163,36 @@ def get_args():
     :return: argument parser
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--s0", help="start of the grid", type=float)
-    parser.add_argument("--sf", help="end of the grid", type=float)
+    parser.add_argument("-s", "--surface", help="start and end of the grid", type=float, nargs='+')
     parser.add_argument("--ds", help="grid resolution", type=float)
     parser.add_argument("-vp", help="speed of pressure waves", type=float, default=None)
     parser.add_argument("-vs", help="speed of sheer waves", type=float, default=None)
     parser.add_argument("-N", help="number of disturbances", type=int)
-    parser.add_argument("-z", help="a list of z values for the geophone grid", type=float, default=0.0, nargs='+')
-    parser.add_argument("--z0", help="start of disturbance depth range", type=float, default=0.0)
-    parser.add_argument("--zf", help="end of disturbance depth range", type=float, default=-50.0)
+    parser.add_argument("-z", "--z-sensors", help="a list of z values for the geophone grid",
+                        type=float, default=0.0, nargs='+')
+    parser.add_argument("-Z", "--z-range", help="range of possible z values of the disturbance - start to end",
+                        type=float, default=0.0, nargs='+')
     parser.add_argument("--max-subs", help="max disturbances per disturbance", type=int, default=1)
 
-    parser.add_argument("--break-range0", help="time to wait between disturbances - start", type=int, default=400)
-    parser.add_argument("--break-rangef", help="time to wait between disturbances - end", type=int, default=500)
-    parser.add_argument("--sub-range0", help="time to wait between sub disturbances - start", type=int, default=50)
-    parser.add_argument("--sub-rangef", help="time to wait between  subdisturbances - end", type=int, default=100)
+    parser.add_argument("--break-range", help="time to wait between disturbances - start to end", type=int,
+                        nargs='+', default=[400, 500])
+    parser.add_argument("--sub-range", help="time to wait between sub disturbances - start to end", type=int,
+                        nargs='+', default=[50, 100])
     parser.add_argument("--SEED", help="a seed for randomness", type=int, default=SEED)
 
-    parser.add_argument("--A0", help="range of amplitudes - start", type=float, default=0.9)
-    parser.add_argument("--Af", help="range of amplitudes - end", type=float, default=1.1)
-    parser.add_argument("--w0", help="range of wave size - start", type=float, default=0.1)
-    parser.add_argument("--wf", help="range of wave size - end", type=float, default=0.3)
+    parser.add_argument("-S", "--signal", help="list the source functions that can be used", type=str,
+                        choices=['sinc', 'rick', 'vlad'], nargs='+', default=["sinc"])
+    parser.add_argument("--param0", help="a list of parameters for the signal function (start of range)", type=float,
+                        nargs='+', default=[])
+    parser.add_argument("--paramf", help="a list of parameters for the signal function (end of range)", type=float,
+                        nargs='+', default=[])
 
     parser.add_argument('--show-data', help="show graph of example data", action='store_true')
+    # TODO: add support for custom save location
+    parser.add_argument('--save-dir', help="a path to the directory where to save the files",
+                        type=str, default='./')
+    parser.add_argument("--proj-name", help="the name of the project to put in the save file names",
+                        type=str, default='')
 
     return parser
 
@@ -196,23 +205,30 @@ def main():
     args = get_args().parse_args()
     if SEED != args.SEED:
         np.random.seed(args.SEED)
+    signals = []
+    for sig in args.signal:
+        if sig == "sinc":
+            signals.append(lambda t, t0, A, w: A * np.sinc(w * (t - t0)))
+        elif sig == "rick":
+            signals.append(sig)
+        elif sig == "vlad":
+            signals.append(sig)
 
     data_file_name = os.path.abspath("./data.npy")
     lbls_file_name = os.path.abspath("./labels.npy")
     geos_file_name = os.path.abspath("./geo_loc.npy")
-    s0 = args.s0
-    sf = args.sf
+    s0 = args.surface[0]
+    sf = args.surface[1]
     ds = args.ds
-    geophs = create_geophone_square(s0, sf, ds, z=args.z)
-    sig_sinc = lambda t, t0, A, w: A * np.sinc(w * (t - t0))
-    data, y_true = gen_shots(sig_sinc,
-                             [[args.A0, args.w0], [args.Af, args.wf]],
+    geophs = create_geophone_square(s0, sf, ds, z=args.z_sensors)
+    data, y_true = gen_shots(signals,
+                             [args.param0, args.paramf],
                              geophs,
-                             [(s0, s0, args.z0), (sf, sf, args.zf)],
+                             [(s0, s0, args.z_range[0]), (sf, sf, args.z_range[1])],
                              N=args.N,
                              max_subs=args.max_subs,
-                             break_range=[args.break_range0, args.break_rangef],
-                             sub_range=[args.sub_range0, args.sub_rangef],
+                             break_range=args.break_range,
+                             sub_range=args.sub_range,
                              vp=args.vp,
                              vs=args.vs,
                              seed=args.SEED)
