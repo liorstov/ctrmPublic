@@ -214,9 +214,10 @@ def main():
         elif sig == "vlad":
             signals.append(sig)
 
-    data_file_name = os.path.abspath("./data.npy")
-    lbls_file_name = os.path.abspath("./labels.npy")
-    geos_file_name = os.path.abspath("./geo_loc.npy")
+    base_path = os.path.join(os.path.abspath(args.save_dir), os.path.abspath(args.proj_name))
+    data_file_path = os.path.join(base_path, os.path.abspath(args.proj_name + "_data.npy"))
+    lbls_file_path = os.path.join(base_path, os.path.abspath(args.proj_name + "_labels.npy"))
+    geos_file_path = os.path.join(base_path, os.path.abspath(args.proj_name + "_geo_loc.npy"))
     s0 = args.surface[0]
     sf = args.surface[1]
     ds = args.ds
@@ -243,9 +244,9 @@ def main():
         plt.title("example shots - normalized")
         plt.legend()
         plt.show()
-    np.save(data_file_name, data)
-    np.save(lbls_file_name, y_true)
-    np.save(geos_file_name, geophs)
+    np.save(data_file_path, data)
+    np.save(lbls_file_path, y_true)
+    np.save(geos_file_path, geophs)
     return 1
 
 
