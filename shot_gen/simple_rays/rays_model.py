@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 import argparse
 import os
 import random
+import signals as sg
 
 SEED=42
 np.random.seed(SEED)
@@ -59,7 +60,7 @@ def gen_shot_for_speed(f, v, dists, t_span, t0, amps, dt_max=None, params=[]):
     :return: shot data for each sensor as a numpy matrix
     """
     # find the time the disturbance takes to travel to each geophone
-    dt = dists / v
+    dt_geo = dists / v
     # create an object to hold the output data
     shots = np.zeros((dists.shape[0], t_span[1] - t_span[0]))
     if dt_max is None:
@@ -69,7 +70,7 @@ def gen_shot_for_speed(f, v, dists, t_span, t0, amps, dt_max=None, params=[]):
         t_f = min(t_span[1], t0 + dt_max)
         time_range = np.arange(t_0, t_f)
     for t in time_range:
-        shots[:, t] = amps * f(t - dt, t0, *params)
+        shots[:, t] = amps * f(t - dt_geo, t0, *params)
     return shots
 
 
@@ -104,7 +105,7 @@ def gen_shots(funcs, param_range, geophs, loc_range, N, max_subs, break_range, s
         max_diag += (max(geophs[:, i].max(), max(loc_range[0][i], loc_range[1][i])) -
                      min(geophs[:, i].min(), min(loc_range[0][i], loc_range[1][i]))) ** 2
     max_diag = np.sqrt(max_diag)
-    max_dt = max_diag // min(vp, vs)
+    max_time_to_pass = max_diag / np.nanmin(vp, vs)
 
     for _ in range(N):
         T += np.random.randint(*break_range)
@@ -135,9 +136,9 @@ def gen_shots(funcs, param_range, geophs, loc_range, N, max_subs, break_range, s
         ttf = disturb_range[-1] + dis_wait
         y_res[:, tt0:ttf] = np.array([[1] + loc] * (ttf - tt0)).T
 
+        wind_calc, f = random.choice(funcs)
+        # TODO: find max window size based on max_time_to_pass, and the chosen func and params
         for disturb_t in disturb_range:
-            f = random.choice(funcs)
-            # TODO: find max window size based on max_dt, and the chosen func and params
             outp += gen_a_shot(f, disturb_t, params, geophs, loc, [0, T], t_window=None, vp=vp, vs=vs)
     return outp, y_res
 
@@ -186,6 +187,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--surface", help="start and end of the grid", type=float, nargs='+')
     parser.add_argument("--ds", help="grid resolution", type=float)
+    parser.add_argument("--dt", help="how many seconds in one dt", type=float, default=0.5)
     parser.add_argument("-vp", help="speed of pressure waves", type=float, default=None)
     parser.add_argument("-vs", help="speed of sheer waves", type=float, default=None)
     parser.add_argument("-N", help="number of disturbances", type=int)
@@ -226,15 +228,14 @@ def main():
     if SEED != args.SEED:
         np.random.seed(args.SEED)
     # match function name to function implementation
-    # TODO: add rick and vlad source function implementation
     signals = []
     for sig in args.signal:
         if sig == "sinc":
-            signals.append(lambda t, t0, A, w: A * np.sinc(w * (t - t0)))
+            signals.append((sg.sinc_tr, sg.sinc))
         elif sig == "rick":
-            signals.append(sig)
+            signals.append((sg.ricker_tr, sg.ricker))
         elif sig == "vlad":
-            signals.append(sig)
+            signals.append((sg.vlad_tr, sg.vlad))
 
     base_path = os.path.join(os.path.abspath(args.save_dir), os.path.abspath(args.proj_name))
     data_file_path = os.path.join(base_path, os.path.abspath(args.proj_name + "_data.npy"))
