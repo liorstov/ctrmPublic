@@ -10,7 +10,7 @@ SEED=42
 np.random.seed(SEED)
 
 
-def gen_a_shot(f, t0, params, geophs, loc, t_span, t_window=None, vp=None, vs=None):
+def gen_a_shot(f, t0, params, geophs, loc, t_span, dt, t_window=None, vp=None, vs=None):
     """
     given a geophoes geometry, a disturbance location and type,
     will generate a a timeline with only this disturbance
@@ -20,6 +20,7 @@ def gen_a_shot(f, t0, params, geophs, loc, t_span, t_window=None, vp=None, vs=No
     :param geophs: a numpy array containing the locations of the geophones
     :param loc: the location of the disturbance
     :param t_span: the amount of time the recorded in the shot
+    :param dt: how many seconds in each time moment
     :param t_window: (int) a time window in which the signal effects the model
     (should effect during t0 - t_window, to t0 + t_window). If None, ignore
     :param vp: the speed of the pressure wave. If None, will be ignored.
@@ -41,11 +42,11 @@ def gen_a_shot(f, t0, params, geophs, loc, t_span, t_window=None, vp=None, vs=No
     shots = np.zeros((dists.shape[0], t_span[1] - t_span[0]))
     for v, amps in zip([vp, vs], [amps_p, amps_s]):
         if v is not None:
-            shots += gen_shot_for_speed(f, v, dists, t_span, t0, amps, t_window, params)
+            shots += gen_shot_for_speed(f, v, dists, t_span, t0, amps, dt, t_window, params)
     return shots
 
 
-def gen_shot_for_speed(f, v, dists, t_span, t0, amps, dt_max=None, params=[]):
+def gen_shot_for_speed(f, v, dists, t_span, t0, amps, dt=1, dt_max=None, params=[]):
     """
     generate shot data for 1 speed mode
     :param f: a function describing the disturbance, of form f(t, *params)
@@ -54,13 +55,14 @@ def gen_shot_for_speed(f, v, dists, t_span, t0, amps, dt_max=None, params=[]):
     :param t_span: the time span the experiment takes place in: [t_0, t_f]
     :param t0: the time the disturbance occurs at
     :param amps: the amplitude decay of the the signal to the sensor
+    :param dt: how many seconds in each time moment
     :param dt_max: used for optimization, define a time window around the disturbance,
     outside of which the disturbance is not felt (pass as time steps). If None, ignore
     :param params: additional parameters the source function takes
     :return: shot data for each sensor as a numpy matrix
     """
     # find the time the disturbance takes to travel to each geophone
-    dt_geo = dists / v
+    dt_geo = dists / (v * dt)
     # create an object to hold the output data
     shots = np.zeros((dists.shape[0], t_span[1] - t_span[0]))
     if dt_max is None:
@@ -74,7 +76,8 @@ def gen_shot_for_speed(f, v, dists, t_span, t0, amps, dt_max=None, params=[]):
     return shots
 
 
-def gen_shots(funcs, param_range, geophs, loc_range, N, max_subs, break_range, sub_range, vp=None, vs=None, seed=42):
+def gen_shots(funcs, param_range, geophs, loc_range, N, max_subs, break_range, sub_range, vp=None, vs=None, dt=0.0005,
+              seed=42):
     """
     generate a sequence of disturbances and record shot data
     :param funcs: a list of source functions of the form f(t, t0, *params)
@@ -89,6 +92,7 @@ def gen_shots(funcs, param_range, geophs, loc_range, N, max_subs, break_range, s
     :param sub_range: a range of time to wait between sub disturbances
     :param vp: speed of pressure waves (if None, will be ignored)
     :param vs: speed of sheer waves (if None, will be ignored)
+    :param dt: how many seconds in each time step
     :param seed: used to set the randomness of the model
     :return: a numpy array containing the shot data of the disturbance
     """
@@ -187,7 +191,9 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--surface", help="start and end of the grid", type=float, nargs='+')
     parser.add_argument("--ds", help="grid resolution", type=float)
-    parser.add_argument("--dt", help="how many seconds in one dt", type=float, default=0.5)
+    parser.add_argument("--dt", help="how many seconds in one dt. it's used mainly to keep time units consistent when "
+                                     "changing time resolutions. it can also kept as 1, but care must be taken to "
+                                     "update other units when changing time resolutions", type=float, default=0.5)
     parser.add_argument("-vp", help="speed of pressure waves", type=float, default=None)
     parser.add_argument("-vs", help="speed of sheer waves", type=float, default=None)
     parser.add_argument("-N", help="number of disturbances", type=int)
@@ -245,15 +251,6 @@ def main():
     sf = args.surface[1]
     ds = args.ds
 
-    if args.vp is None:
-        vp = None
-    else:
-        vp = args.vp / args.dt
-    if args.vs is None:
-        vs = None
-    else:
-        vs = args.vs / args.dt
-
     geophs = create_geophone_square(s0, sf, ds, z=args.z_sensors)
     data, y_true = gen_shots(signals,
                              [args.param0, args.paramf],
@@ -263,8 +260,9 @@ def main():
                              max_subs=args.max_subs,
                              break_range=args.break_range,
                              sub_range=args.sub_range,
-                             vp=vp,
-                             vs=vs,
+                             vp=args.vp,
+                             vs=args.vs,
+                             dt=args.dt,
                              seed=args.SEED)
     if args.show_data:
         print(f"the shape of data is {data.shape}")
