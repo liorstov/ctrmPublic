@@ -248,11 +248,11 @@ def main():
     if args.vp is None:
         vp = None
     else:
-        vp = args.vp * args.dt
+        vp = args.vp / args.dt
     if args.vs is None:
         vs = None
     else:
-        vs = args.vs * args.dt
+        vs = args.vs / args.dt
 
     geophs = create_geophone_square(s0, sf, ds, z=args.z_sensors)
     data, y_true = gen_shots(signals,
