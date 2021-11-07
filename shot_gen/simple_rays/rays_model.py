@@ -244,6 +244,16 @@ def main():
     s0 = args.surface[0]
     sf = args.surface[1]
     ds = args.ds
+
+    if args.vp is None:
+        vp = None
+    else:
+        vp = args.vp * args.dt
+    if args.vs is None:
+        vs = None
+    else:
+        vs = args.vs * args.dt
+
     geophs = create_geophone_square(s0, sf, ds, z=args.z_sensors)
     data, y_true = gen_shots(signals,
                              [args.param0, args.paramf],
@@ -253,16 +263,16 @@ def main():
                              max_subs=args.max_subs,
                              break_range=args.break_range,
                              sub_range=args.sub_range,
-                             vp=args.vp,
-                             vs=args.vs,
+                             vp=vp,
+                             vs=vs,
                              seed=args.SEED)
     if args.show_data:
         print(f"the shape of data is {data.shape}")
         print(f"the shape of the results is {y_true.shape}")
-        plt.plot(np.arange(0, data.shape[1]), data[-1, :] / (data[-1, :].max()), label="last shot")
-        plt.plot(np.arange(0, data.shape[1]), data[0, :] / (data[0, :].max()), label="first shot")
-        plt.plot(np.arange(0, data.shape[1]), y_true[0, :], label="times of signal")
-        plt.xlabel("time")
+        plt.plot(np.arange(0, data.shape[1])*args.dt, data[-1, :] / (data[-1, :].max()), label="last shot")
+        plt.plot(np.arange(0, data.shape[1])*args.dt, data[0, :] / (data[0, :].max()), label="first shot")
+        plt.plot(np.arange(0, data.shape[1])*args.dt, y_true[0, :], label="times of signal")
+        plt.xlabel("time (secs)")
         plt.ylabel("normalized shots")
         plt.title("example shots - normalized")
         plt.legend()

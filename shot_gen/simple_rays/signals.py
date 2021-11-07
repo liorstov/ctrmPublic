@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib import pyplot as plt
 
 
 def ricker(t, t0=0, s=1, a=1):
@@ -10,6 +11,7 @@ def ricker(t, t0=0, s=1, a=1):
     :param a: the amplitude of the wavelet
     :return: the corresponding ricker wavelet
     """
+    s = s / 4
     t = (t - t0) / s
     amp = 3 * np.sqrt(np.pi) * s
     amp = a * 2 / np.sqrt(amp)
@@ -27,7 +29,7 @@ def ricker_tr(s=1):
     :param s: the spread of the wavelet
     :return: the radius of the time window in which the wavelet appears
     """
-    return 5.5 * s
+    return 1 * s
 
 
 def sinc(t, t0=0, s=1, a=1):
@@ -39,6 +41,7 @@ def sinc(t, t0=0, s=1, a=1):
     :param a: the amplitude of the wavelet
     :return: the corresponding sinc signal
     """
+    s = s / 10
     t = (t - t0) / s
     return a * np.sinc(t)
 
@@ -49,7 +52,7 @@ def sinc_tr(s=1):
     :param s: the spread of the wavelet
     :return: the radius of the time window in which the wavelet appears
     """
-    return 50 * s
+    return 1 * s
 
 
 def vlad(t, t0=0, s=1, a=1):
@@ -76,3 +79,10 @@ def vlad_tr(s=1):
     :return: the radius of the time window in which the wavelet appears
     """
     return 1.0 * s
+
+
+if __name__ == "__main__":
+    tt = np.arange(-1.1, 1.1, 0.01)
+    yy = sinc(tt)
+    plt.plot(tt, yy)
+    plt.show()
