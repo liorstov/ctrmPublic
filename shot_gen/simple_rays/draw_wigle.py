@@ -3,8 +3,16 @@ from matplotlib import pyplot as plt
 
 data = np.load("../../../temp_data/tests_data.npy")
 geo_locs = np.load("../../../temp_data/tests_geo_loc.npy")
-lbls = np.load("../../../temp_data/tests_labels.npy")
+cc , xx, yy, zz = np.load("../../../temp_data/tests_labels.npy")
 dt = 0.0005
+
+print("locations of the sources:")
+last_x, last_y, last_z = (0, 0, 0)
+for i, c in enumerate(cc):
+    if c == 1:
+        if xx[i] != last_x:
+            last_x, last_y, last_z = xx[i], yy[i], zz[i]
+            print(xx[i], yy[i], zz[i])
 
 tt = np.arange(0, data.shape[1]) * dt
 for wig, loc in zip(data, geo_locs):
