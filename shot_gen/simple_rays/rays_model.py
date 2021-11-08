@@ -141,8 +141,10 @@ def gen_shots(funcs, s_range, param_range, geophs, loc_range, N, max_subs, break
         for a, b in zip(loc_range[0], loc_range[1]):
             loc.append(a + ((b - a) * np.random.random()))
 
-        tt0 = disturb_range[0]
-        ttf = disturb_range[-1] + dis_wait
+        tt0 = disturb_range[0] - int(1000 * dt / s)
+        tt0 = max(tt0, 0)
+        ttf = disturb_range[-1] + dis_wait + int(1000 * dt / s)
+        ttf = min(ttf, y_res.shape[1] - 1)
         y_res[:, tt0:ttf] = np.array([[1] + loc] * (ttf - tt0)).T
 
         wind_calc, f = random.choice(funcs)
