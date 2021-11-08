@@ -1,10 +1,19 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-data = np.load("../../../temp_data/tests_data.npy")
-geo_locs = np.load("../../../temp_data/tests_geo_loc.npy")
-cc , xx, yy, zz = np.load("../../../temp_data/tests_labels.npy")
+data = np.load("../../../temp_data/02/tests_data.npy")
+geo_locs = np.load("../../../temp_data/02/tests_geo_loc.npy")
+cc , xx, yy, zz = np.load("../../../temp_data/02/tests_labels.npy")
 dt = 0.0005
+
+print("general data about the files:")
+print(f"the data file is of shape {data.shape}, and it contains a numpy array with the reading of each sensor")
+print(f"the locs file is of shape {geo_locs.shape}, and it contains the location of each sensor")
+print(f"labels file has 4 arrays:")
+print(f"\ta truth array of shape {cc.shape}")
+print(f"\tan X array of shape {xx.shape}")
+print(f"\ta Y array of shape {yy.shape}")
+print(f"\ta Z array of shape {zz.shape}")
 
 print("locations of the sources:")
 last_x, last_y, last_z = (0, 0, 0)
