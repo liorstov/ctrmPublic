@@ -10,12 +10,13 @@ SEED=42
 np.random.seed(SEED)
 
 
-def gen_a_shot(f, t0, params, geophs, loc, t_span, dt, t_window=None, vp=None, vs=None):
+def gen_a_shot(f, t0, s, params, geophs, loc, t_span, dt, t_window=None, vp=None, vs=None):
     """
     given a geophoes geometry, a disturbance location and type,
     will generate a a timeline with only this disturbance
     :param f: a function describing the disturbance, of form f(t, *params)
     :param t0: the time the disturbance occurs at
+    :param s: the time radius (half width) of the wavelet signal
     :param params: a list of params to pass to f() after the time
     :param geophs: a numpy array containing the locations of the geophones
     :param loc: the location of the disturbance
@@ -25,7 +26,7 @@ def gen_a_shot(f, t0, params, geophs, loc, t_span, dt, t_window=None, vp=None, v
     (should effect during t0 - t_window, to t0 + t_window). If None, ignore
     :param vp: the speed of the pressure wave. If None, will be ignored.
     :param vs: the speed of the sheer wave. If None, will be ignored.
-    :return: a numpy array containing the shot data of the disturbance
+    :return: a numpy array containing the shot data of the di    s = 1sturbance
     """
     # make sure that we're working with some kind of wave
     assert (vp is not None) or (vs is not None), "can't have both vp and vs being None"
@@ -42,11 +43,11 @@ def gen_a_shot(f, t0, params, geophs, loc, t_span, dt, t_window=None, vp=None, v
     shots = np.zeros((dists.shape[0], t_span[1] - t_span[0]))
     for v, amps in zip([vp, vs], [amps_p, amps_s]):
         if v is not None:
-            shots += gen_shot_for_speed(f, v, dists, t_span, t0, amps, dt, t_window, params)
+            shots += gen_shot_for_speed(f, v, dists, t_span, t0, s, amps, dt, t_window, params)
     return shots
 
 
-def gen_shot_for_speed(f, v, dists, t_span, t0, amps, dt=1, dt_max=None, params=[]):
+def gen_shot_for_speed(f, v, dists, t_span, t0, s, amps, dt=1, dt_max=None, params=[]):
     """
     generate shot data for 1 speed mode
     :param f: a function describing the disturbance, of form f(t, *params)
@@ -54,6 +55,7 @@ def gen_shot_for_speed(f, v, dists, t_span, t0, amps, dt=1, dt_max=None, params=
     :param dists: the distances of the wave source from each sensor
     :param t_span: the time span the experiment takes place in: [t_0, t_f]
     :param t0: the time the disturbance occurs at
+    :param s: the time radius (half width) of the wavelet signal
     :param amps: the amplitude decay of the the signal to the sensor
     :param dt: how many seconds in each time moment
     :param dt_max: used for optimization, define a time window around the disturbance,
@@ -72,15 +74,16 @@ def gen_shot_for_speed(f, v, dists, t_span, t0, amps, dt=1, dt_max=None, params=
         t_f = min(t_span[1], t0 + dt_max)
         time_range = np.arange(t_0, t_f)
     for t in time_range:
-        shots[:, t] = amps * f(t - dt_geo, t0, *params)
+        shots[:, t] = amps * f(t - dt_geo, t0, s, *params)
     return shots
 
 
-def gen_shots(funcs, param_range, geophs, loc_range, N, max_subs, break_range, sub_range, vp=None, vs=None, dt=0.0005,
-              seed=42):
+def gen_shots(funcs, s_range, param_range, geophs, loc_range, N, max_subs, break_range, sub_range, vp=None, vs=None,
+              dt=0.0005, seed=42):
     """
     generate a sequence of disturbances and record shot data
-    :param funcs: a list of source functions of the form f(t, t0, *params)
+    :param funcs: a list of source functions of the form f(t, t0, s, *params)
+    :param s_range: a range for the possible signal half widths (in mSecs)
     :param param_range: 2 lists describing the range of params that can be passed to to f()
     after the time variable: [params_0, params_f]
     :param geophs: a numpy array containing the locations of the geophones
@@ -98,6 +101,7 @@ def gen_shots(funcs, param_range, geophs, loc_range, N, max_subs, break_range, s
     """
     # calculate the moment each disturbance takes place, and total sim time
     # TODO: implement seed usage, or delete it as an input
+    chosen_s = []
     T = 0
     dis_times = []
     dis_dt = []
@@ -112,11 +116,12 @@ def gen_shots(funcs, param_range, geophs, loc_range, N, max_subs, break_range, s
     max_time_to_pass = max_diag / np.nanmin(vp, vs)
 
     for _ in range(N):
-        T += np.random.randint(*break_range)
+        T += np.random.randint(*(np.array(break_range) / (dt * 1000)))
         n_subs = np.random.randint(1, max_subs + 1)
-        t_wait = np.random.randint(*sub_range)
+        t_wait = np.random.randint(*(np.array(sub_range) / (dt * 1000)))
         dis_dt.append(t_wait)
         sub_dists = []
+        chosen_s.append(s_range[0] + ((s_range[1] - s_range[0]) * np.random.random()))
         for _ in range(n_subs):
             T += t_wait
             sub_dists.append(T)
@@ -128,7 +133,7 @@ def gen_shots(funcs, param_range, geophs, loc_range, N, max_subs, break_range, s
     y_res = np.zeros((4, T))
 
     # create a random disturbance each dis moment
-    for disturb_range, dis_wait in tqdm(zip(dis_times, dis_dt)):
+    for disturb_range, dis_wait, s in tqdm(zip(dis_times, dis_dt, chosen_s)):
         params = []
         for a, b in zip(param_range[0], param_range[1]):
             params.append(a + ((b - a) * np.random.random()))
@@ -143,7 +148,7 @@ def gen_shots(funcs, param_range, geophs, loc_range, N, max_subs, break_range, s
         wind_calc, f = random.choice(funcs)
         # TODO: find max window size based on max_time_to_pass, and the chosen func and params
         for disturb_t in disturb_range:
-            outp += gen_a_shot(f, disturb_t, params, geophs, loc, [0, T], t_window=None, vp=vp, vs=vs)
+            outp += gen_a_shot(f, disturb_t, s, params, geophs, loc, [0, T], dt=dt, t_window=None, vp=vp, vs=vs)
     return outp, y_res
 
 
@@ -203,14 +208,17 @@ def get_args():
                         type=float, default=0.0, nargs='+')
     parser.add_argument("--max-subs", help="max disturbances per disturbance", type=int, default=1)
 
-    parser.add_argument("--break-range", help="time to wait between disturbances - start to end", type=int,
+    parser.add_argument("--break-range", help="time to wait between disturbances - start to end (in mSecs)", type=int,
                         nargs='+', default=[400, 500])
-    parser.add_argument("--sub-range", help="time to wait between sub disturbances - start to end", type=int,
+    parser.add_argument("--sub-range", help="time to wait between sub disturbances - start to end (in mSecs)", type=int,
                         nargs='+', default=[50, 100])
     parser.add_argument("--SEED", help="a seed for randomness", type=int, default=SEED)
 
     parser.add_argument("-S", "--signal", help="list the source functions that can be used", type=str,
                         choices=['sinc', 'rick', 'vlad'], nargs='+', default=["sinc"])
+    parser.add_argument("--r-sig", help="a range for the possible signal radius (half width) in mSecs. If only one "
+                                         "value is given, only this value will be used (in mSecs)",
+                        type=float, nargs='+', default=[1])
     parser.add_argument("--param0", help="a list of parameters for the signal function (start of range)", type=float,
                         nargs='+', default=[])
     parser.add_argument("--paramf", help="a list of parameters for the signal function (end of range)", type=float,
@@ -252,10 +260,11 @@ def main():
     ds = args.ds
 
     geophs = create_geophone_square(s0, sf, ds, z=args.z_sensors)
-    data, y_true = gen_shots(signals,
-                             [args.param0, args.paramf],
-                             geophs,
-                             [(s0, s0, args.z_range[0]), (sf, sf, args.z_range[1])],
+    data, y_true = gen_shots(funcs=signals,
+                             s_range=args.r_sig,
+                             param_range=[args.param0, args.paramf],
+                             geophs=geophs,
+                             loc_range=[(s0, s0, args.z_range[0]), (sf, sf, args.z_range[1])],
                              N=args.N,
                              max_subs=args.max_subs,
                              break_range=args.break_range,
