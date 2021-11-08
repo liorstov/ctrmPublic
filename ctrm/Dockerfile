@@ -1,11 +1,12 @@
 FROM ubuntu:devel
 
-COPY . ./app
+USER liors
+COPY /build ./app/build
+#COPY /testData ./app/testData
+COPY ./script.sh ./app
 WORKDIR /app
-RUN apt-get update && apt-get install -y apt-utils && apt-get install -y curl
-RUN  apt-get update
+RUN  apt-get update &&  apt-get install -y libgomp1
 RUN apt-get install nano
-RUN   apt-get -y install build-essential && g++ --version
-RUN   apt-get -y install libomp-dev
-VOLUME /data
+RUN mkdir -p /testData && chown -R liors /testData
+
 CMD bash

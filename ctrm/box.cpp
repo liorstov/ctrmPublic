@@ -307,6 +307,7 @@ void box::CalcSurfaceDist()
 }
 void box::CalcTimeDeltaOnly()
 {
+	std::cout << "calculating time delta only lol" << endl;
 
 	float  distance{ 0 }, surface{ 0 }, VVmax, VVmin, CurrectVelocity, IpDepth{ 0 }, ydist{ 0 }, xdist{ 0 }, geoEnergy{ 0 };
 	float  VV{ 0 }, S{ 0 }, SS{ 0 }, f1{ 0 }, f2{ 0 }, fCorrolation{ 0 }, windowAvr{ 0 }, currentSemblance{ 0 };
@@ -344,6 +345,8 @@ void box::CalcTimeDeltaOnly()
 			Ip.timeDeltas.push_back(tuple<int,float,float>(Geo.index,deltaTimemin/dt,deltaTimemax/dt));
 		}
 	}
+	std::cout << "finished calculating time delta only lol" << endl;
+
 }
 ///// <summary>
 ///// calculate semblence for each IP for each sample
@@ -536,6 +539,7 @@ float box::calcAvarageVelo(float IpDepth, float GeoDepth)
 
 void box::writeSemblenceNpy(std::string file)
 {
+	std::cout << "creating output file cube" << file << endl;
 
 	auto i{ 0 };
 	vector<float> ret;
@@ -558,6 +562,8 @@ void box::writeSemblenceNpy(std::string file)
 
 void box::writeTimeDeltasNpy(std::string file)
 {
+	std::cout << "creating output file delta" << file << endl;
+
 	auto i{ 0 };
 	vector<float> ret;
 	ret.reserve(vImagePoints.size() * vImagePoints[0].timeDeltas.size() * 6);
