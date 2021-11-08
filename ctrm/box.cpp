@@ -341,7 +341,7 @@ void box::CalcTimeDeltaOnly()
 			if (deltaTimemax >= nsamp || deltaTimemin <= 0 || surface > minDist) {
 				continue;
 			}
-			Ip.timeDeltas.push_back(tuple(Geo.index,deltaTimemin/dt,deltaTimemax/dt));
+			Ip.timeDeltas.push_back(tuple<int,float,float>(Geo.index,deltaTimemin/dt,deltaTimemax/dt));
 		}
 	}
 }

@@ -12,7 +12,6 @@
 #include <chrono>
 #include "progressbar.hpp"
 #include <algorithm>
-#include <execution>
 #include <thread>
 #include <omp.h>
 #include "npy.hpp"
@@ -48,7 +47,7 @@ public:
 	void writeTimeDeltasNpy(std::string file);
 	std::vector<pair<float,float>> vRadiusVelo;
 	float highestEnergy{ 0.0f };
-	float minimumDepth = __FLT_NORM_MAX__;
+	float minimumDepth = 1000000;
 	float ntrace = 72;
 	float numrecl = 1;
 	float numsh = 1;
