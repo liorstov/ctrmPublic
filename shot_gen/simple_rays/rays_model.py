@@ -10,7 +10,7 @@ SEED=42
 np.random.seed(SEED)
 
 
-def gen_a_shot(f, t0, s, params, geophs, loc, t_span, dt, t_window=None, vp=None, vs=None):
+def gen_a_shot(f, t0, s, params, geophs, loc, t_span, dt, max_time_to_pass=None, vp=None, vs=None):
     """
     given a geophoes geometry, a disturbance location and type,
     will generate a a timeline with only this disturbance
@@ -22,8 +22,8 @@ def gen_a_shot(f, t0, s, params, geophs, loc, t_span, dt, t_window=None, vp=None
     :param loc: the location of the disturbance
     :param t_span: the amount of time the recorded in the shot
     :param dt: how many seconds in each time moment
-    :param t_window: (int) a time window in which the signal effects the model
-    (should effect during t0 - t_window, to t0 + t_window). If None, ignore
+    :param max_time_to_pass: the max amount of time (in secs) it takes a signal to pass from one end of the model to
+    the other. If None, ignore
     :param vp: the speed of the pressure wave. If None, will be ignored.
     :param vs: the speed of the sheer wave. If None, will be ignored.
     :return: a numpy array containing the shot data of the di    s = 1sturbance
@@ -43,7 +43,7 @@ def gen_a_shot(f, t0, s, params, geophs, loc, t_span, dt, t_window=None, vp=None
     shots = np.zeros((dists.shape[0], t_span[1] - t_span[0]))
     for v, amps in zip([vp, vs], [amps_p, amps_s]):
         if v is not None:
-            shots += gen_shot_for_speed(f, v, dists, t_span, t0, s, amps, dt, t_window, params)
+            shots += gen_shot_for_speed(f, v, dists, t_span, t0, s, amps, dt, max_time_to_pass, params)
     return shots
 
 
@@ -58,8 +58,8 @@ def gen_shot_for_speed(f, v, dists, t_span, t0, s, amps, dt=1, dt_max=None, para
     :param s: the time radius (half width) of the wavelet signal
     :param amps: the amplitude decay of the the signal to the sensor
     :param dt: how many seconds in each time moment
-    :param dt_max: used for optimization, define a time window around the disturbance,
-    outside of which the disturbance is not felt (pass as time steps). If None, ignore
+    :param dt_max: used for optimization, the max amount of time (in secs) it takes a signal to pass from one end
+    of the model to the other. If None, ignore
     :param params: additional parameters the source function takes
     :return: shot data for each sensor as a numpy matrix
     """
@@ -70,8 +70,9 @@ def gen_shot_for_speed(f, v, dists, t_span, t0, s, amps, dt=1, dt_max=None, para
     if dt_max is None:
         time_range = np.arange(t_span[0], t_span[1])
     else:
-        t_0 = max(0, t0 - dt_max)
-        t_f = min(t_span[1], t0 + dt_max)
+        t_wind = int((dt_max + (1000 / s)) / dt)
+        t_0 = max(0, t0 - t_wind)
+        t_f = min(t_span[1], t0 + t_wind)
         time_range = np.arange(t_0, t_f)
     for t in time_range:
         shots[:, t] = amps * f(t - dt_geo, t0, s, *params)
@@ -150,7 +151,8 @@ def gen_shots(funcs, s_range, param_range, geophs, loc_range, N, max_subs, break
         wind_calc, f = random.choice(funcs)
         # TODO: find max window size based on max_time_to_pass, and the chosen func and params
         for disturb_t in disturb_range:
-            outp += gen_a_shot(f, disturb_t, s, params, geophs, loc, [0, T], dt=dt, t_window=None, vp=vp, vs=vs)
+            outp += gen_a_shot(f, disturb_t, s, params, geophs, loc, [0, T], dt=dt, max_time_to_pass=max_time_to_pass,
+                               vp=vp, vs=vs)
     return outp, y_res
 
 
@@ -286,8 +288,12 @@ def main():
         plt.title("example shots - normalized")
         plt.legend()
         plt.show()
+    print("saving new data")
+    print("saving the sensor readings...")
     np.save(data_file_path, data)
+    print("saving the signal sources...")
     np.save(lbls_file_path, y_true)
+    print("saving the sensor locations...")
     np.save(geos_file_path, geophs)
     return 1
 
