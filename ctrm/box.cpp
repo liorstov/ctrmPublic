@@ -44,7 +44,7 @@ void box::readCoord(string file)
 		std::cout << "can't open coordinate file "<< file<< endl;
 	}
 	string line;
-	int index,x, y, z;
+	float index,x, y, z;
 	while (std::getline(coordinats, line)) {
 
 
