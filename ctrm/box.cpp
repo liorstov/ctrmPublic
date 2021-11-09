@@ -99,7 +99,7 @@ void box::readEnergy(string file)
 		if (jbeg < 0) jbeg = 0;
 		if (jend > (nsamp-100)) jend = nsamp-100;
 	}
-	std::cout << serialNumber <<" signalPOsition: "<< this->highestEnergy<<" "<< signalPosition << " start to end " << jbeg << "-" << jend << endl;
+	std::cout << "Number of recievers: "<<currentGeo<< "Number of samples: "<<currentSemp <<" high signal value: "<< this->highestEnergy<<" high signal position "<< signalPosition << " start to end " << jbeg << "-" << jend << endl;
 }
 void box::readVelo(string file)
 {
@@ -132,7 +132,7 @@ void box::readVelo(string file)
 
 void box::createImageSpace()
 {
-	std::cout << "lines"<< ymax << "traces" << xmax << "radius" << startRadius << "to" << endRadius<< endl;
+	std::cout << "lines: "<< ymax << "traces: " << xmax << "radius: " << startRadius << "to: " << endRadius<< endl;
 	int index{ 0 };
 	for (float y_index = ymin; y_index <= ymax ; y_index+= dyLines)
 	{
@@ -188,6 +188,7 @@ void box::CalcSurfaceDist()
 	ProgressBar pBar(int(vImagePoints.size()), 70);
 	#pragma omp parallel default(none) shared(pBar,counter)
 	{
+		printf("num of threads %d \n", omp_get_num_threads( ));
 		float  distance{ 0 }, surface{ 0 }, VVa{ 0 }, VV, CurrectVelocity, IpDepth{ 0 }, ydist{ 0 }, xdist{ 0 }, geoEnergy{ 0 };
 		float  minusCounter{ 1 }, plusCounter{ 1 },SembSize{ 0 },totalGeophones{ 0 }, SemblaneWeight{ 1 }, deltaTime{ 0 }, S{ 0 }, SS{ 0 }, f1{ 0 }, f2{ 0 }, fCorrolation{ 0 }, windowAvr{ 0 }, currentSemblance{ 0 };
 		int   deltaSample{ 0 },totalSize{ int(vImagePoints.size()) }, totalWindowIterations{ 0 };
