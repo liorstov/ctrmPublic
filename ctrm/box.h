@@ -28,6 +28,7 @@ public:
 	void readCoord(string file);
 	
 	void readEnergy(string file);
+	void readEnergyFromNpy(string file);
 	void readVelo(string file);
 	void createImageSpace();
 	std::vector<int> getCoord();

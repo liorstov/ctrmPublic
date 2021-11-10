@@ -27,10 +27,7 @@ box::box(int traces,int lines,int tracesMin, int linesMin,int startRad, int endR
 		<< "_dv " << _dv << endl
 		<< "windowsSize " << windowSize << endl
 		<< endl;
-	/*if (geom.rows() != energy.cols()) {
-		throw(std::range_error("number of geo and traces mismatch"));
-	}
-	std::cout << (geom.rows(), energy.cols());*/
+	
 }
 //
 void box::readCoord(string file)
@@ -89,6 +86,7 @@ void box::readEnergy(string file)
 			this->highestEnergy = value;
 			signalPos = currentSemp;
 		}
+		std::cout << currentGeo << " "<< currentSemp << " " <<  value << endl;
 		++serialNumber;
 	}
 	this->signalPosition = signalPos;
@@ -100,6 +98,35 @@ void box::readEnergy(string file)
 		if (jend > (nsamp-100)) jend = nsamp-100;
 	}
 	std::cout << "Number of recievers: "<<currentGeo<< "Number of samples: "<<currentSemp <<" high signal value: "<< this->highestEnergy<<" high signal position "<< signalPosition << " start to end " << jbeg << "-" << jend << endl;
+}
+void box::readEnergyFromNpy(string file)
+{
+	 vector<unsigned long> shape;
+  bool fortran_order;
+  vector<double> data;
+   npy::LoadArrayFromNumpy(file, shape, fortran_order, data);
+   
+   
+  
+   int signalPos{ 0 },currentGeo{0}, counter{0}, samples{int(shape.at(1))};
+   for (float value: data)
+   {
+	   currentGeo = counter / samples;
+	   vGeophones[currentGeo].U.push_back((value));
+	   if (value > this->highestEnergy) {
+			this->highestEnergy = value;
+			signalPos = 0;
+		}
+	  counter++;
+	  	//  std::cout << "Number of recievers: "<<currentGeo << "   "<<counter % samples<< " " << value<< endl;
+		//   << "Number of samples: "<<currentSemp <<" high signal value: "<< this->highestEnergy<<" high signal position "<< signalPosition << " start to end " << jbeg << "-" << jend << endl;
+
+	}
+
+	std::cout << "Number of recievers: "<<currentGeo << endl;
+	for (float i: shape)
+    std::cout << i << ' ';
+
 }
 void box::readVelo(string file)
 {
@@ -124,8 +151,11 @@ void box::readVelo(string file)
 	{
 		num.first = radius;
 		vRadiusVelo.push_back(num);
-		radius += dr;
+		radius += 1;
 		std::cout << num.second << " ";
+	}
+	if (vRadiusVelo.size() < (endRadius - startRadius)) {
+		throw(std::range_error("number of velocities in velo profile is lower then cube z dimension"));
 	}
 }
 
@@ -239,7 +269,7 @@ void box::CalcSurfaceDist()
 
 							deltaSample = window + int(roundf(deltaTime));
 
-							if (deltaSample >= nsamp || deltaSample <= 0 || surface > minDist) {
+							if (deltaSample <= 0 || surface > minDist) {
 								continue;
 							}
 							else {
@@ -340,7 +370,7 @@ void box::CalcTimeDeltaOnly()
 			deltaTimemax = distance / VVmax - float(Ip.z) / CurrectVelocity;
 			deltaTimemin = distance / VVmin - float(Ip.z) / CurrectVelocity;
 
-			if (deltaTimemax >= nsamp || deltaTimemin <= 0 || surface > minDist) {
+			if (deltaTimemin <= 0 || surface > minDist) {
 				continue;
 			}
 			Ip.timeDeltas.push_back(tuple<int,float,float>(Geo.index,deltaTimemin/dt,deltaTimemax/dt));
@@ -349,91 +379,7 @@ void box::CalcTimeDeltaOnly()
 	std::cout << "finished calculating time delta only lol" << endl;
 
 }
-///// <summary>
-///// calculate semblence for each IP for each sample
-///// </summary>
-//void box::corrolationOnGeo(bool RP)
-//{
-//	std::cout << "calculating corrolation"<< vImagePoints.size()<< "image points";
-//
-//	//INIT PROGRESS BAR
-//	progresscpp::ProgressBar progressBar(int(vImagePoints.size()), 70);
-//	float  timeDiff{ 0 }, S{ 0 }, SS{ 0 }, d{ 0 }, f1{ 0 }, f2{ 0 }, fCorrolation, geoEnergy{ 0 }, totalIterations{ 0 };
-//	int  nTotalSamples{ 0 }, totalSize{ int(vImagePoints.size()) }, i{ 0 }, nNumOfGeoParticipate{ 0 }, progress{ 0 };
-//	for (auto& Ip : vImagePoints)
-//	{		
-//			for (int sample = jbeg; sample <= jend; ++sample)
-//			{
-//				f1 = 0;
-//				f2 = 0;
-//
-//				for (int velocity = 0; velocity < vRange / dv*2 + 1; ++velocity)
-//				{
-//					SS = 0;
-//					S = 0;
-//					nTotalSamples = 0;
-//					for (auto& IpGeo : Ip.IpGeoCalc)
-//					{
-//						//averageWindow
-//						for (int window = sample - windowSize; window <= sample + windowSize; window++)
-//						{
-//							// the time for the current speed
-//							timeDiff = window + IpGeo.VelocityRangeTimeDelta[velocity].timeDelta;
-//
-//							//std::cout << (radius, velocity,timeDiff);
-//							// check if inside the sample frame
-//							if (timeDiff >= nsamp || timeDiff <= 0 || IpGeo.horizontal > minDist) {
-//
-//								continue;
-//							}
-//
-//
-//							// get the energy from the input according to geophone number and time difference
-//							//geoEnergy = getGeophoneEnergy(IpGeo.GeoIndex, );
-//							geoEnergy = vGeophones[IpGeo.GeoIndex-1].U[lroundf(timeDiff)];
-//
-//							if (RP) {
-//								geoEnergy /= IpGeo.RadPatternPwave;
-//							}
-//							// samblence
-//							S += geoEnergy;
-//							SS += powf(geoEnergy, 2);
-//							totalIterations++;
-//
-//						}
-//						nTotalSamples++;
-//
-//					}
-//
-//					// calculate samblence for each velocity
-//					if (SS != 0)
-//					{
-//						d = powf(S, 2) / (SS * nTotalSamples);
-//					}
-//					else d = 0;
-//
-//					f1 += d * expf(60 * d);
-//					f2 += expf(60 * d);
-//					
-//				}
-//
-//				//for each sample calculate the corrolation
-//				fCorrolation = f1 / f2;
-//
-//				//for each sample add the radius and correlation
-//				//Ip.SampleSemblance.push_back(std::tuple<int,int, float>(sample, nTotalSamples,fCorrolation));
-//			}
-//			//std::cout << (Ip.IPindex) << endl;
-//			// print status bar
-//			++progressBar;
-//			if (i % int(vImagePoints.size()*0.1) == 0){
-//				progressBar.display();
-//			}
-//			i++;
-//	}
-//	progressBar.done();
-//
-//}
+
 float box::calcAvarageVelo(float IpDepth, float GeoDepth)
 {
 	auto begin = min(int(roundf(IpDepth)), int(roundf(GeoDepth)));
@@ -454,89 +400,6 @@ float box::calcAvarageVelo(float IpDepth, float GeoDepth)
 
 	return((counter) / avarage);
 }
-//
-//Eigen::MatrixXd box::getSample()
-//{
-//
-//	Eigen::MatrixXd ret(vImagePoints.size() * vImagePoints[0].SampleSemblance.size(),7);
-//	std::cout << ("writing", vImagePoints.size() * vImagePoints[0].SampleSemblance.size(), "records");
-//
-//	auto i{ 0 }, stamp{ 0 };
-//	std::pair<int, float> semblance;
-//	for (auto const& IP: vImagePoints)
-//	{
-//		stamp = 0;
-//		for (auto const& samb : IP.SampleSemblance)
-//		{		
-//			ret(i, 0) = IP.IPindex;
-//			ret(i, 1) = IP.x;
-//			ret(i, 2) = IP.y;
-//			ret(i, 3) = IP.z;
-//			ret(i, 4) = std::get<0>(samb);
-//			ret(i, 5) = std::get<1>(samb);
-//			ret(i, 6) = std::get<2>(samb);
-//			++i;
-//		}		
-//	}
-//
-//	std::cout << (i);
-//	return ret;
-//}
-//
-//Eigen::MatrixXd box::getIP()
-//{
-//	Eigen::MatrixXd ret(vImagePoints.size() * vImagePoints[0].IpGeoCalc.size() * vImagePoints[0].IpGeoCalc[0].VelocityRangeTimeDelta.size()*(jend-jbeg), 12);
-//	//Eigen::MatrixXd ret = Eigen::MatrixXd::Zero(12);
-//	std::cout << ("writing IP");
-//	int i{ 0 }, j{ 0 };
-//	for (auto& Ip : vImagePoints) {
-//		for (auto& GeoIp : Ip.IpGeoCalc) {
-//			for (auto& velo : GeoIp.VelocityRangeTimeDelta) {
-//				for (int sample = jbeg; sample < jend; ++sample){
-//					ret(i, j++) = Ip.x;
-//					ret(i, j++) = Ip.y;
-//					ret(i, j++) = Ip.z;
-//					ret(i, j++) = velo.referenceVelocity;
-//					ret(i, j++) = GeoIp.GeoIndex;
-//					ret(i, j++) = GeoIp.horizontal;
-//					ret(i, j++) = GeoIp.vertical;
-//					ret(i, j++) = GeoIp.distance;
-//					ret(i, j++) = velo.actualVelocity;
-//					ret(i, j++) = velo.timeDelta;
-//					ret(i, j++) = sample;
-//					ret(i, j++) = getGeophoneEnergy(GeoIp.GeoIndex, lroundf(sample+velo.timeDelta))	;
-//					i++;
-//					j = 0;
-//				}
-//			}
-//		}
-//	}
-//
-//	return ret;
-//}
-
-
-//
-//void box::writeIP()
-//{
-//	std::cout << "writing space to file..." << endl;
-//	std::ofstream myfile;
-//	myfile.open("ImagePoints.csv");
-//	myfile << "Ip.x, Ip.y, Ip.z, GeoIndex, horizontal, vertical, distance, velocity, timedelta" << endl;
-//	for (auto& Ip: vImagePoints) {
-//		for (auto& GeoIp : Ip.IpGeoCalc) {
-//			for (auto& velo : GeoIp.VelocityRangeTimeDelta) {
-//				myfile << Ip.x << "," << Ip.y << "," << Ip.z << "," << GeoIp.writeInfo(int(Ip.x)) << "," <<
-//					velo.actualVelocity << "," << velo.timeDelta << endl;
-//
-//			}
-//
-//		}
-//	}
-//	myfile.close();
-//
-//}
-//
 
 void box::writeSemblenceNpy(std::string file)
 {

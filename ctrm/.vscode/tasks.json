@@ -3,12 +3,11 @@
 	"tasks": [
 		{
 			"type": "shell",
-			"label": "C/C++: g++ build active file",
+			"label": "build release",
 			"command": "/usr/bin/g++",
 			"args": [
 				"-std=c++17",				
-				"-fdiagnostics-color=always",
-				"-g",
+				"-fdiagnostics-color=always",				
 				"${workspaceFolder}/*.cpp",
 				"-o",
 				"${workspaceFolder}/build/box",
@@ -24,6 +23,31 @@
 			"group": {
 				"kind": "build",
 				"isDefault": true
+			},
+			"detail": "compiler: /usr/bin/g++"
+		},
+		{
+			"type": "shell",
+			"label": "build debug",
+			"command": "/usr/bin/g++",
+			"args": [
+				"-std=c++17",				
+				"-fdiagnostics-color=always",
+				"${workspaceFolder}/*.cpp",
+				"-o",
+				"${workspaceFolder}/build/box",
+				"-fopenmp",
+				"-g3",
+			],
+			"options": {
+				"cwd": "${fileDirname}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "test",
+				"isDefault": true,
 			},
 			"detail": "compiler: /usr/bin/g++"
 		}

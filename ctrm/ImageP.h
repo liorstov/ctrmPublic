@@ -12,14 +12,11 @@ public:
 	float semb;
 
 };
-class sample {
-public:
-	sample(int, int ,int);
+struct sampleData {
+	sampleData(int, int ,int);
 	int sampN;
 	float semblance;
 	std::vector<velocity> velo;
-	char* toChar();
-
 };
 
 
@@ -30,8 +27,6 @@ public:
 	float x, y, z;
 	int IPindex;
 	std::vector<std::tuple<int,float,float>> timeDeltas;
-	std::vector<sample> samples;
-	char* toChar();
-
+	std::vector<sampleData> samples;
 
 };
