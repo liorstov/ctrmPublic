@@ -2,12 +2,11 @@
 
 #include "box.h"
 
-
 const char* buildString = "This build XXXX was compiled at  " __DATE__ ", " __TIME__ ".";
 
 
 #include <sstream> 
-box::box(int traces,int lines,int tracesMin, int linesMin,int startRad, int endRad, int _dx, int _dy,int _jbeg, int _jend,int _vrange, int _dv,int _minDist,int _windowSize, int _dr):xmax(traces),ymax(lines),xmin(tracesMin),ymin(linesMin), windowSize(_windowSize), startRadius(startRad), endRadius(endRad), dyLines(_dy),dxTrace(_dx),vRange(_vrange), dv(_dv),jbeg(_jbeg), jend(_jend),minDist(_minDist),dr(_dr)
+box::box(int traces,int lines,int tracesMin, int linesMin,int startRad, int endRad, int _dx, int _dy,int _jbeg, int _jend,int _vrange, int _dv,int _minDist,int _windowSize, int _dr,float _numOfThreadsPercent):xmax(traces),ymax(lines),xmin(tracesMin),ymin(linesMin), windowSize(_windowSize), startRadius(startRad), endRadius(endRad), dyLines(_dy),dxTrace(_dx),vRange(_vrange), dv(_dv),jbeg(_jbeg), jend(_jend),minDist(_minDist),dr(_dr), numOfThreadsPercent(_numOfThreadsPercent)
 {
 	vImagePoints.reserve(sizeof(ImageP) * 22000); 
 	std::cout << buildString << "xmax " << xmax<<endl
@@ -26,8 +25,8 @@ box::box(int traces,int lines,int tracesMin, int linesMin,int startRad, int endR
 		<< "_vrange " << _vrange << endl
 		<< "_dv " << _dv << endl
 		<< "windowsSize " << windowSize << endl
-		<< endl;
-	
+		<< "threadPercentage " << numOfThreadsPercent << endl
+		<< endl;	
 }
 //
 void box::readCoord(string file)
@@ -155,7 +154,9 @@ void box::readVelo(string file)
 		std::cout << num.second << " ";
 	}
 	if (vRadiusVelo.size() < (endRadius - startRadius)) {
-		throw(std::range_error("number of velocities in velo profile is lower then cube z dimension"));
+		char buffer [402];
+		sprintf(buffer, "number of velocities in velo profile (%d) is lower then cube z dimension (%d)", int(vRadiusVelo.size()), endRadius-startRadius);
+		throw(buffer);
 	}
 }
 
@@ -215,8 +216,10 @@ void box::CalcSurfaceDist()
 {
 	int counter{ 0 };
 	std::cout << "calculating Ip to Geophone distances" << endl;
+	std::cout << "thread percentage: "<<numOfThreadsPercent*100 << endl;
 	ProgressBar pBar(int(vImagePoints.size()), 70);
-	#pragma omp parallel default(none) shared(pBar,counter)
+
+	#pragma omp parallel default(none) shared(pBar,counter) num_threads(int(omp_get_max_threads()*numOfThreadsPercent))
 	{
 		printf("num of threads %d \n", omp_get_num_threads( ));
 		float  distance{ 0 }, surface{ 0 }, VVa{ 0 }, VV, CurrectVelocity, IpDepth{ 0 }, ydist{ 0 }, xdist{ 0 }, geoEnergy{ 0 };

@@ -17,6 +17,7 @@
 #include "npy.hpp"
 
 
+
 using namespace std;
 class box
 {
@@ -24,7 +25,7 @@ class box
 	std::vector<ImageP> vImagePoints;
 
 public:
-	box(int traces, int lines, int tracesMin, int linesMin, int startRad, int endRad, int _dx, int _dy, int _jbeg, int _jend, int _vrange, int _dv, int _minDist, int _windowSize, int _dr);
+	box(int traces, int lines, int tracesMin, int linesMin, int startRad, int endRad, int _dx, int _dy, int _jbeg, int _jend, int _vrange, int _dv, int _minDist, int _windowSize, int _dr,float _numOfThreadsPercent);
 	void readCoord(string file);
 	
 	void readEnergy(string file);
@@ -81,6 +82,6 @@ public:
 	float offmax = 999;
 	int vRange = 150;
 	int signalPosition = 0;
-	
+	float numOfThreadsPercent;
 };
 

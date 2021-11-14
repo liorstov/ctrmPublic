@@ -57,18 +57,19 @@ int main(int argc, char *argv[])
                 atoi(argv[12]),
                 atoi(argv[13]),
                 atoi(argv[14]),
-                atoi(argv[15]));
-    mainBox.readCoord(argv[16]);
-    mainBox.readVelo(argv[17]);
+                atoi(argv[15]),
+                atof(argv[16]));
+    mainBox.readCoord(argv[17]);
+    mainBox.readVelo(argv[18]);
     // mainBox.readEnergy(argv[18]);
-    mainBox.readEnergyFromNpy(argv[18]);
+    mainBox.readEnergyFromNpy(argv[19]);
     mainBox.createImageSpace();
     mainBox.CalcSurfaceDist();
     mainBox.CalcTimeDeltaOnly();
     //mainBox.writeIP();
     //mainBox.corrolationOnGeo(0);
-    mainBox.writeSemblenceNpy(std::string(argv[18]) + std::string(argv[19]) + ".npy");
-    mainBox.writeTimeDeltasNpy(std::string(argv[18]) + std::string(argv[19]) + "_deltas" + ".npy");
+    mainBox.writeSemblenceNpy(std::string(argv[19]) + std::string(argv[20]) + ".npy");
+    mainBox.writeTimeDeltasNpy(std::string(argv[19]) + std::string(argv[20]) + "_deltas" + ".npy");
 
     cin;
     return 0;
