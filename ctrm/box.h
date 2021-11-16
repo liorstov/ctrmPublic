@@ -25,8 +25,9 @@ class box
 	std::vector<ImageP> vImagePoints;
 
 public:
-	box(int traces, int lines, int tracesMin, int linesMin, int startRad, int endRad, int _dx, int _dy, int _jbeg, int _jend, int _vrange, int _dv, int _minDist, int _windowSize, int _dr,float _numOfThreadsPercent);
+	box(int traces, int lines, int tracesMin, int linesMin, int startRad, int endRad, int _dx, int _dy, int _jbeg, int _jend, int _vrange, int _dv, int _minDist, int _windowSize, int _dr,float _numOfThreadsPercent, float _sampleRate);
 	void readCoord(string file);
+	void readCoordnumpy(string file);
 	
 	void readEnergy(string file);
 	void readEnergyFromNpy(string file);

@@ -6,7 +6,7 @@ const char* buildString = "This build XXXX was compiled at  " __DATE__ ", " __TI
 
 
 #include <sstream> 
-box::box(int traces,int lines,int tracesMin, int linesMin,int startRad, int endRad, int _dx, int _dy,int _jbeg, int _jend,int _vrange, int _dv,int _minDist,int _windowSize, int _dr,float _numOfThreadsPercent):xmax(traces),ymax(lines),xmin(tracesMin),ymin(linesMin), windowSize(_windowSize), startRadius(startRad), endRadius(endRad), dyLines(_dy),dxTrace(_dx),vRange(_vrange), dv(_dv),jbeg(_jbeg), jend(_jend),minDist(_minDist),dr(_dr), numOfThreadsPercent(_numOfThreadsPercent)
+box::box(int traces,int lines,int tracesMin, int linesMin,int startRad, int endRad, int _dx, int _dy,int _jbeg, int _jend,int _vrange, int _dv,int _minDist,int _windowSize, int _dr,float _numOfThreadsPercent,float _sampleRate):xmax(traces),ymax(lines),xmin(tracesMin),ymin(linesMin), windowSize(_windowSize), startRadius(startRad), endRadius(endRad), dyLines(_dy),dxTrace(_dx),vRange(_vrange), dv(_dv),jbeg(_jbeg), jend(_jend),minDist(_minDist),dr(_dr), numOfThreadsPercent(_numOfThreadsPercent), dt(_sampleRate)
 {
 	vImagePoints.reserve(sizeof(ImageP) * 22000); 
 	std::cout << buildString << "xmax " << xmax<<endl
@@ -26,7 +26,27 @@ box::box(int traces,int lines,int tracesMin, int linesMin,int startRad, int endR
 		<< "_dv " << _dv << endl
 		<< "windowsSize " << windowSize << endl
 		<< "threadPercentage " << numOfThreadsPercent << endl
+		<< "dt " << dt << endl
 		<< endl;	
+}
+void box::readCoordnumpy(string file){
+	vector<unsigned long> shape;
+	bool fortran_order;
+	vector<double> data;
+	npy::LoadArrayFromNumpy(file, shape, fortran_order, data);
+	std::cout << "coord file open "<< file << endl;
+	int signalPos{ 0 },currentGeo{0}, counter{0}, i{0};
+	while(counter < shape.at(0)){
+		Geophone newGeo(counter++, data[i], data[i+1], data[i+2]);
+		//std::cout <<shape.at(0)<<counter<< data[i]<<data[i+1]<< data[i+2]<< endl;
+		vGeophones.push_back(newGeo);
+		i+=3;
+		if (data[i+2] < minimumDepth)
+			minimumDepth = float(data[i+2]);
+
+	}
+	std::cout << "number of geophones read: "<<  vGeophones.size()<< endl;
+
 }
 //
 void box::readCoord(string file)
@@ -122,7 +142,7 @@ void box::readEnergyFromNpy(string file)
 
 	}
 
-	std::cout << "Number of recievers: "<<currentGeo << endl;
+	std::cout <<endl<< "Number of recievers: "<<currentGeo << endl;
 	for (float i: shape)
     std::cout << i << ' ';
 
@@ -249,7 +269,6 @@ void box::CalcSurfaceDist()
 						//loop over geophones
 						for (auto& Geo : GeoVector)
 						{
-							
 							//geophone depth
 							Geo.z;
 							IpDepth = (Ip.z - Geo.z);
@@ -264,8 +283,7 @@ void box::CalcSurfaceDist()
 							VVa = calcAvarageVelo(Ip.z, Geo.z);
 							// a loop for checking a range of values around the speed of the radius 
 
-								// the avarege value plus an offset
-
+							// the avarege value plus an offset
 							VV = VVa + velocity.value;
 							deltaTime = distance / VV - float(Ip.z) / CurrectVelocity;
 							deltaTime = deltaTime / dt;
@@ -284,23 +302,12 @@ void box::CalcSurfaceDist()
 							S += geoEnergy;
 							SS += (geoEnergy * geoEnergy);
 
-							if (geoEnergy >= 0.0f)
-							{
-								plusCounter++;
-							}
-							else
-							{
-								minusCounter++;
-							}
 							totalGeophones++;
 						}
-						
-						
 						totalWindowIterations++;
-
 					}
 					//calculate the weight of the gate
-					SemblaneWeight = SembSize / totalGeophones / this->highestEnergy;
+					//SemblaneWeight = SembSize / totalGeophones / this->highestEnergy;
 					
 					//number of geophones is calculated again not including the window
 					totalGeophones = totalGeophones/ totalWindowIterations;
