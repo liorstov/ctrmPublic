@@ -33,16 +33,19 @@ void box::readCoordnumpy(string file){
 	vector<unsigned long> shape;
 	bool fortran_order;
 	vector<double> data;
+	std::cout << "opening coord file "<< file << endl;
+
 	npy::LoadArrayFromNumpy(file, shape, fortran_order, data);
 	std::cout << "coord file open "<< file << endl;
 	int signalPos{ 0 },currentGeo{0}, counter{0}, i{0};
 	while(counter < shape.at(0)){
-		Geophone newGeo(counter++, data[i], data[i+1], data[i+2]);
+		Geophone newGeo(data[i], data[i+1], data[i+2], data[i+3]);
+		counter++;
 		//std::cout <<shape.at(0)<<counter<< data[i]<<data[i+1]<< data[i+2]<< endl;
 		vGeophones.push_back(newGeo);
-		i+=3;
-		if (data[i+2] < minimumDepth)
-			minimumDepth = float(data[i+2]);
+		i+=4;
+		if (data[i+3] < minimumDepth)
+			minimumDepth = float(data[i+3]);
 
 	}
 	std::cout << "number of geophones read: "<<  vGeophones.size()<< endl;
@@ -120,59 +123,59 @@ void box::readEnergy(string file)
 }
 void box::readEnergyFromNpy(string file)
 {
-	 vector<unsigned long> shape;
-  bool fortran_order;
-  vector<double> data;
-   npy::LoadArrayFromNumpy(file, shape, fortran_order, data);
+	vector<unsigned long> shape;
+	bool fortran_order;
+	vector<float> data;
+	cout << "read sesmogram from: " << file << endl;
+	npy::LoadArrayFromNumpy(file, shape, fortran_order, data);
    
-   
-  
-   int signalPos{ 0 },currentGeo{0}, counter{0}, samples{int(shape.at(1))};
-   for (float value: data)
+	cout << "shape of sesmogram is: " << shape[0] << "  " << shape[1] << endl;
+   int signalPos{ 0 },currentGeo{0}, counter{0}, samples{int(shape.at(1))},currentSemp{ 0 };
+   nsamp = samples;
+   for (auto value: data)
    {
 	   currentGeo = counter / samples;
+
 	   vGeophones[currentGeo].U.push_back((value));
 	   if (value > this->highestEnergy) {
 			this->highestEnergy = value;
 			signalPos = 0;
 		}
 	  counter++;
-	  	//  std::cout << "Number of recievers: "<<currentGeo << "   "<<counter % samples<< " " << value<< endl;
-		//   << "Number of samples: "<<currentSemp <<" high signal value: "<< this->highestEnergy<<" high signal position "<< signalPosition << " start to end " << jbeg << "-" << jend << endl;
+	  //	 std::cout << "Number of recievers: "<<currentGeo << "   "<<counter << " "<<currentSemp<< " " << value<< endl;
 
 	}
+	if (jbeg == -1 || jend == -1) {
+		jbeg = 0;
+		jend = samples;
+	}
 
-	std::cout <<endl<< "Number of recievers: "<<currentGeo << endl;
+	std::cout <<endl<< "Number of recievers: "<<vGeophones.size() << endl<< "highest energy: " << this-> highestEnergy << endl;;
+
+	if (vGeophones.size() != currentGeo+1){
+		throw(runtime_error("warning : size of sesmogram different from number of recievers"));
+	}
 	for (float i: shape)
     std::cout << i << ' ';
 
 }
 void box::readVelo(string file)
 {
-	ifstream velo;
-	velo.open(file);
-	if (velo.is_open()) {
-		std::cout << ("velo file open ") << file << endl;
-	}
-	else {
-		std::cout << "can't open velo file  set to constant" << file << endl;
-		for (size_t i = 1; i < 41; i++)
-		{
-			std::pair<float, float> num{ i,2000 };
-			vRadiusVelo.push_back(num);
-			std::cout << to_string(vRadiusVelo[i].first) << endl;
-		}
-		return;
-	}
-	std::pair<float, float> num;
+	vector<unsigned long> shape;
+	bool fortran_order;
+	vector<double> data;
+	npy::LoadArrayFromNumpy(file, shape, fortran_order, data); 
+	cout << "read velocity profile from "<< file << endl;
 	float radius = 0;
-	while (velo >> num.second)
-	{
-		num.first = radius;
+	for (auto velo : data){
+		std::pair<float, float> num;
+		num.first = radius++;
+		num.second = velo;
 		vRadiusVelo.push_back(num);
-		radius += 1;
-		std::cout << num.second << " ";
+		std::cout << velo<< endl;
 	}
+	std::cout << "finished"<< endl;
+
 	if (vRadiusVelo.size() < (endRadius - startRadius)) {
 		char buffer [402];
 		sprintf(buffer, "number of velocities in velo profile (%d) is lower then cube z dimension (%d)", int(vRadiusVelo.size()), endRadius-startRadius);
@@ -242,6 +245,7 @@ void box::CalcSurfaceDist()
 	#pragma omp parallel default(none) shared(pBar,counter) num_threads(int(omp_get_max_threads()*numOfThreadsPercent))
 	{
 		printf("num of threads %d \n", omp_get_num_threads( ));
+			
 		float  distance{ 0 }, surface{ 0 }, VVa{ 0 }, VV, CurrectVelocity, IpDepth{ 0 }, ydist{ 0 }, xdist{ 0 }, geoEnergy{ 0 };
 		float  minusCounter{ 1 }, plusCounter{ 1 },SembSize{ 0 },totalGeophones{ 0 }, SemblaneWeight{ 1 }, deltaTime{ 0 }, S{ 0 }, SS{ 0 }, f1{ 0 }, f2{ 0 }, fCorrolation{ 0 }, windowAvr{ 0 }, currentSemblance{ 0 };
 		int   deltaSample{ 0 },totalSize{ int(vImagePoints.size()) }, totalWindowIterations{ 0 };
@@ -250,7 +254,6 @@ void box::CalcSurfaceDist()
 		#pragma omp for  
 		for (int i = 0; i < vImagePoints.size(); i++)
 		{
-
 			auto& Ip = vImagePoints[i];
 			fCorrolation = 0;
 			for (auto& sample : Ip.samples)
@@ -258,7 +261,6 @@ void box::CalcSurfaceDist()
 				f1 = f2 = 0;
 				for (auto& velocity : sample.velo)
 				{
-
 					totalWindowIterations = 0;
 					windowAvr = 0;
 					totalGeophones = S = SS = SembSize = 0.0f;
@@ -290,15 +292,16 @@ void box::CalcSurfaceDist()
 
 							deltaSample = window + int(roundf(deltaTime));
 
-							if (deltaSample <= 0 || surface > minDist) {
-								continue;
+							if (deltaSample >= nsamp || deltaSample <= 0 ) {
+								geoEnergy = 0;
 							}
 							else {
-
+								// if (Geo.U.size() == 0)
+								// 	printf("dsample %lu  , %d \n" ,Geo.U.size(), Geo.index);
 								geoEnergy = Geo.U[deltaSample];
 							}
-
-							SembSize += fabsf(geoEnergy);
+							SembSize = max(SembSize, fabsf(geoEnergy));
+							//SembSize += (fabsf(geoEnergy));
 							S += geoEnergy;
 							SS += (geoEnergy * geoEnergy);
 
@@ -307,10 +310,14 @@ void box::CalcSurfaceDist()
 						totalWindowIterations++;
 					}
 					//calculate the weight of the gate
-					//SemblaneWeight = SembSize / totalGeophones / this->highestEnergy;
-					
+					 //SemblaneWeight = SembSize ;
+					SemblaneWeight = 1;
+					// if (true) {
+					// 	printf("%f %f %f %f %f\n", currentSemblance,SemblaneWeight, SembSize , (totalGeophones+totalWindowIterations) , this->highestEnergy);
+					// }
+
 					//number of geophones is calculated again not including the window
-					totalGeophones = totalGeophones/ totalWindowIterations;
+					//totalGeophones = totalGeophones/ totalWindowIterations;
 					
 					//calculate semblance for the depth
 					if (SS != 0)						
@@ -326,9 +333,7 @@ void box::CalcSurfaceDist()
 					velocity.semb =  (1-(plusCounter+minusCounter))*SemblaneWeight;*/
 					f1 += velocity.semb * expf(60 * velocity.semb);
 					f2 += expf(60 * velocity.semb);
-					/*if (Ip.x == 30 && Ip.y == -25 && Ip.z == 1) {
-						std::cout << velocity.value << " " << f1 << " " << f2 << " " << velocity.semb << endl;
-					}*/
+					
 				}
 					
 				sample.semblance = f1/f2;
