@@ -125,7 +125,7 @@ void box::readEnergyFromNpy(string file)
 {
 	vector<unsigned long> shape;
 	bool fortran_order;
-	vector<float> data;
+	vector<double> data;
 	cout << "read sesmogram from: " << file << endl;
 	npy::LoadArrayFromNumpy(file, shape, fortran_order, data);
    
