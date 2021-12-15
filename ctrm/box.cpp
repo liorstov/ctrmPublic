@@ -229,8 +229,7 @@ void box::CalcSurfaceDist()
 								SembSize += (fabsf(geoEnergy));
 								totalGeophonesWeight++;
 							}
-							S += geoEnergy;
-							SS += (geoEnergy * geoEnergy);
+						//classified
 
 							totalGeophones++;
 						}
@@ -246,16 +245,10 @@ void box::CalcSurfaceDist()
 								
 					
 					//calculate semblance for the depth
-					if (SS != 0)						
-							currentSemblance = (S*S) / (SS * totalGeophones);
-						else
-							currentSemblance = 0.0f;
-
-					velocity.semb = currentSemblance* SemblaneWeight;
 					
-					// multipass for velocity 
-					f1 += velocity.semb * expf(60 * velocity.semb);
-					f2 += expf(60 * velocity.semb);
+					
+					
+					//classified
 				}
 					
 				sample.semblance = f1/f2;
