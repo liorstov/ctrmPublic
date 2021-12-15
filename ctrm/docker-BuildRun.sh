@@ -1,5 +1,5 @@
  #build an image named ctrm
- docker build  -t ctrm  .
+docker build --pull --rm -f "Dockerfile" -t ctrm:latest "."
 
 #build container and create a shared volume in dp28  at /Shared/CtrmTestData
 #u should move input files to this directory

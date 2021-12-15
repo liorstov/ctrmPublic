@@ -1,38 +1,6 @@
 #include "box.h"
 #include <filesystem>
 
-//
-//
-//#define STRINGIFY(x) #x
-//#define MACRO_STRINGIFY(x) STRINGIFY(x)
-//
-//namespace py = pybind11;
-//PYBIND11_MODULE(ctrm, m) {
-//
-//	/*py::class_<box> c(m, "box");
-//	c.def(py::init<int, int,int, int, int, int, int,int, int, int, int, int, int, Eigen::MatrixXf, Eigen::MatrixXf, Eigen::MatrixXf, int>(),py::arg("xmax"),py::arg("ymax"), py::arg("xmin"), py::arg("ymin"),  py::arg("startRad"), py::arg("endRad"), py::arg("dx"), py::arg("dy"), py::arg("jbeg"), py::arg("jend"), py::arg("vrange"), py::arg("dv"), py::arg("minDist"), py::arg("veloList"), py::arg("geom"), py::arg("energy"), py::arg("windowSize"))
-//		.def("readCoord", &box::readCoord)
-//		.def("setEnergy", &box::setEnergy)
-//		.def("setCoord", &box::setCoord)
-//		.def("readEnergy", &box::readEnergy)
-//		.def("createImageSpace", &box::createImageSpace)
-//		.def("CalcSurfaceDist", &box::CalcSurfaceDist)
-//		.def("corrolationOnGeo", &box::corrolationOnGeo,py::call_guard<py::scoped_ostream_redirect,	py::scoped_estream_redirect>())
-//		.def("getIP", &box::getIP)
-//		.def("writeIP", &box::writeIP)
-//		.def("writeSemblence", &box::writeSemblence)
-//		.def("getCoord", &box::getCoord)
-//		.def("getSample", &box::getSample)
-//		.def("getEnergy", &box::getEnergy)
-//		;*/
-//
-//#ifdef VERSION_INFO
-//    m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
-//#else
-//    m.attr("__version__") = "dev";
-//#endif
-//}
-
 int main(int argc, char *argv[])
 {
 

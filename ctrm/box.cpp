@@ -1,12 +1,19 @@
-
-
 #include "box.h"
+#include <sstream> 
 
 const char* buildString = "This build XXXX was compiled at  " __DATE__ ", " __TIME__ ".";
 
+// constructor of the box takes the following parameters:
+// xmin,ymin,xmax,ymax dimension of cube
+// endrad startrad: depth of cube
+//dx,dy,dz cube resolution
+// minDist: all recievers within this range should be calculated for each imagePoint
+//window size: the size of the semblance gate
+//jbeg jend the sesmogram time slice for computation
+//numOfThreadsPercent: the fraction of threads to be used
+//_sampleRate sesmogram sample rate in miliseconds (seconds/samples)
 
-#include <sstream> 
-box::box(int traces,int lines,int tracesMin, int linesMin,int startRad, int endRad, int _dx, int _dy,int _jbeg, int _jend,int _vrange, int _dv,int _minDist,int _windowSize, int _dr,float _numOfThreadsPercent,float _sampleRate):xmax(traces),ymax(lines),xmin(tracesMin),ymin(linesMin), windowSize(_windowSize), startRadius(startRad), endRadius(endRad), dyLines(_dy),dxTrace(_dx),vRange(_vrange), dv(_dv),jbeg(_jbeg), jend(_jend),minDist(_minDist),dr(_dr), numOfThreadsPercent(_numOfThreadsPercent), dt(_sampleRate)
+box::box(int _xmax,int _ymax,int _xmin, int _ymin,int startRad, int endRad, int _dx, int _dy,int _jbeg, int _jend,int _vrange, int _dv,int _minDist,int _windowSize, int _dr,float _numOfThreadsPercent,float _sampleRate):xmax(_xmax),ymax(_ymax),xmin(_xmin),ymin(_ymin), windowSize(_windowSize), startRadius(startRad), endRadius(endRad), dyLines(_dy),dxTrace(_dx),vRange(_vrange), dv(_dv),jbeg(_jbeg), jend(_jend),minDist(_minDist),dr(_dr), numOfThreadsPercent(_numOfThreadsPercent), dt(_sampleRate)
 {
 	vImagePoints.reserve(sizeof(ImageP) * 22000); 
 	std::cout << buildString << "xmax " << xmax<<endl
@@ -29,15 +36,21 @@ box::box(int traces,int lines,int tracesMin, int linesMin,int startRad, int endR
 		<< "dt " << dt << endl
 		<< endl;	
 }
+
+//read coordinates of geophones from a numpy array of index,x,y,z for each reciever
 void box::readCoordnumpy(string file){
+
+	// read numpy
 	vector<unsigned long> shape;
 	bool fortran_order;
 	vector<double> data;
 	std::cout << "opening coord file "<< file << endl;
-
-	npy::LoadArrayFromNumpy(file, shape, fortran_order, data);
+	npy::LoadArrayFromNumpy(file, shape, fortran_order, data);	
 	std::cout << "coord file open "<< file << endl;
+	
 	int signalPos{ 0 },currentGeo{0}, counter{0}, i{0};
+
+	// move to geophone vector
 	while(counter < shape.at(0)){
 		Geophone newGeo(data[i], data[i+1], data[i+2], data[i+3]);
 		counter++;
@@ -51,100 +64,35 @@ void box::readCoordnumpy(string file){
 	std::cout << "number of geophones read: "<<  vGeophones.size()<< endl;
 
 }
-//
-void box::readCoord(string file)
-{
-	ifstream coordinats;
-	coordinats.open(file);
-	if (coordinats.is_open()) {
-		std::cout << ("coordinate file open ") << file << endl;
-	}
-	else {
-		std::cout << "can't open coordinate file "<< file<< endl;
-	}
-	string line;
-	float index,x, y, z;
-	while (std::getline(coordinats, line)) {
 
-
-		stringstream ss(line);
-		string num;
-		ss >> index >> x >> y >> z;
-		//std::cout << (index,x,y,z);
-
-		Geophone newGeo(index, x, y, z);
-		vGeophones.push_back(newGeo);
-
-		if (z < minimumDepth)
-			minimumDepth = float(z);
-	}
-
-	std::cout << "number of geophones read: "<<  vGeophones.size()<< endl;
-}
-
-
-void box::readEnergy(string file)
-{
-	ifstream Ener;
-	Ener.open(file,ios::binary);
-	if (Ener.is_open()) {
-		std::cout << ("Ener file open ") << file << endl;
-	}
-	else {
-		std::cout << "can't open Ener file" << file << endl;
-		return;
-	}
-	int serialNumber{ 0 }, currentGeo{ 0 }, currentSemp{ 0 }, nofGeo{ static_cast<int>(vGeophones.size()) }, signalPos{ 0 };
-	
-	float value;
-
-	while (Ener.read(reinterpret_cast<char*>(&value), sizeof(value)) && currentGeo < vGeophones.size())
-	{
-		vGeophones[currentGeo].U.push_back((value));
-		value = fabsf(value);
-		currentGeo = serialNumber / nsamp;
-		currentSemp = serialNumber % nsamp;
-		if (value > this->highestEnergy) {
-			this->highestEnergy = value;
-			signalPos = currentSemp;
-		}
-		std::cout << currentGeo << " "<< currentSemp << " " <<  value << endl;
-		++serialNumber;
-	}
-	this->signalPosition = signalPos;
-	if (jbeg == -1 || jend == -1) {
-		jbeg = signalPosition - 200;
-		jend = signalPosition + 200;
-
-		if (jbeg < 0) jbeg = 0;
-		if (jend > (nsamp-100)) jend = nsamp-100;
-	}
-	std::cout << "Number of recievers: "<<currentGeo<< "Number of samples: "<<currentSemp <<" high signal value: "<< this->highestEnergy<<" high signal position "<< signalPosition << " start to end " << jbeg << "-" << jend << endl;
-}
+// read sesmogram from a numpy array in segy format [tracesXsamples]
 void box::readEnergyFromNpy(string file)
 {
+	//read file
 	vector<unsigned long> shape;
 	bool fortran_order;
-	vector<double> data;
+	vector<float> data;
 	cout << "read sesmogram from: " << file << endl;
-	npy::LoadArrayFromNumpy(file, shape, fortran_order, data);
-   
+	npy::LoadArrayFromNumpy(file, shape, fortran_order, data);   
 	cout << "shape of sesmogram is: " << shape[0] << "  " << shape[1] << endl;
+
    int signalPos{ 0 },currentGeo{0}, counter{0}, samples{int(shape.at(1))},currentSemp{ 0 };
    nsamp = samples;
    for (auto value: data)
    {
-	   currentGeo = counter / samples;
+		currentGeo = counter / samples;
 
-	   vGeophones[currentGeo].U.push_back((value));
-	   if (value > this->highestEnergy) {
-			this->highestEnergy = value;
-			signalPos = 0;
-		}
-	  counter++;
-	  //	 std::cout << "Number of recievers: "<<currentGeo << "   "<<counter << " "<<currentSemp<< " " << value<< endl;
-
+		// read data for each  Geophone
+		vGeophones[currentGeo].U.push_back((value));
+		if (value > this->highestEnergy) {
+				// save the highest energy read
+				this->highestEnergy = value;
+				signalPos = 0;
+			}
+		counter++;
 	}
+
+	// read all if -1 
 	if (jbeg == -1 || jend == -1) {
 		jbeg = 0;
 		jend = samples;
@@ -152,13 +100,15 @@ void box::readEnergyFromNpy(string file)
 
 	std::cout <<endl<< "Number of recievers: "<<vGeophones.size() << endl<< "highest energy: " << this-> highestEnergy << endl;;
 
+	// check if number of traces equal number of geophones
 	if (vGeophones.size() != currentGeo+1){
 		throw(runtime_error("warning : size of sesmogram different from number of recievers"));
 	}
 	for (float i: shape)
     std::cout << i << ' ';
-
 }
+
+// read velocity from a numpy array of one dimension: velocity for each meter
 void box::readVelo(string file)
 {
 	vector<unsigned long> shape;
@@ -176,6 +126,7 @@ void box::readVelo(string file)
 	}
 	std::cout << "finished"<< endl;
 
+	// check if velocity profile fit each computed depth
 	if (vRadiusVelo.size() < (endRadius - startRadius)) {
 		char buffer [402];
 		sprintf(buffer, "number of velocities in velo profile (%d) is lower then cube z dimension (%d)", int(vRadiusVelo.size()), endRadius-startRadius);
@@ -183,7 +134,7 @@ void box::readVelo(string file)
 	}
 }
 
-
+// create vector of image space
 void box::createImageSpace()
 {
 	std::cout << "lines: "<< ymax << "traces: " << xmax << "radius: " << startRadius << "to: " << endRadius<< endl;
@@ -203,33 +154,6 @@ void box::createImageSpace()
 }
 
 
-std::vector<int> box::getCoord()
-{
-	std::vector<int> ret;
-	for (auto const& value : vGeophones) {
-		ret.push_back(value.index);
-	}
-	return ret;
-}
-
-float box::getGeophoneEnergy(int index, int timeDiff)
-{
-	float retValue {0};
-	auto samples = vGeophones.at(size_t(index)).U;
-	if ((timeDiff >= 0) && (timeDiff<samples.size())){
-		retValue = samples.at(size_t(timeDiff));
-	}
-	return retValue;
-}
-
-float box::getGeoZ(int x, int y) {
-	for (auto const& value : vGeophones) {
-		if (value.x == x && value.y == y) {
-			return float(value.z);
-		}
-	}
-	return 0;
-}
 
 /// <summary>
 /// calculates the distances between geophones and Ip 
@@ -247,10 +171,11 @@ void box::CalcSurfaceDist()
 		printf("num of threads %d \n", omp_get_num_threads( ));
 			
 		float  distance{ 0 }, surface{ 0 }, VVa{ 0 }, VV, CurrectVelocity, IpDepth{ 0 }, ydist{ 0 }, xdist{ 0 }, geoEnergy{ 0 };
-		float  minusCounter{ 1 }, plusCounter{ 1 },SembSize{ 0 },totalGeophones{ 0 }, SemblaneWeight{ 1 }, deltaTime{ 0 }, S{ 0 }, SS{ 0 }, f1{ 0 }, f2{ 0 }, fCorrolation{ 0 }, windowAvr{ 0 }, currentSemblance{ 0 };
+		float  minusCounter{ 1 }, plusCounter{ 1 },SembSize{ 0 },totalGeophones{ 0 },totalGeophonesWeight{ 0 }, SemblaneWeight{ 1 }, deltaTime{ 0 }, S{ 0 }, SS{ 0 }, f1{ 0 }, f2{ 0 }, fCorrolation{ 0 }, windowAvr{ 0 }, currentSemblance{ 0 };
 		int   deltaSample{ 0 },totalSize{ int(vImagePoints.size()) }, totalWindowIterations{ 0 };
 		auto GeoVector = vGeophones;
 
+		// prallel computation of the image space
 		#pragma omp for  
 		for (int i = 0; i < vImagePoints.size(); i++)
 		{
@@ -264,6 +189,7 @@ void box::CalcSurfaceDist()
 					totalWindowIterations = 0;
 					windowAvr = 0;
 					totalGeophones = S = SS = SembSize = 0.0f;
+					totalGeophonesWeight = 0;
 					SemblaneWeight = 1;
 					minusCounter = plusCounter = 0.0f;
 					for (int window = sample.sampN - windowSize; window <=  sample.sampN+ windowSize; window++)
@@ -296,12 +222,13 @@ void box::CalcSurfaceDist()
 								geoEnergy = 0;
 							}
 							else {
-								// if (Geo.U.size() == 0)
-								// 	printf("dsample %lu  , %d \n" ,Geo.U.size(), Geo.index);
 								geoEnergy = Geo.U[deltaSample];
 							}
-							SembSize = max(SembSize, fabsf(geoEnergy));
-							//SembSize += (fabsf(geoEnergy));
+
+							if (surface<50){
+								SembSize += (fabsf(geoEnergy));
+								totalGeophonesWeight++;
+							}
 							S += geoEnergy;
 							SS += (geoEnergy * geoEnergy);
 
@@ -309,15 +236,14 @@ void box::CalcSurfaceDist()
 						}
 						totalWindowIterations++;
 					}
-					//calculate the weight of the gate
-					 //SemblaneWeight = SembSize ;
-					SemblaneWeight = 1;
-					// if (true) {
-					// 	printf("%f %f %f %f %f\n", currentSemblance,SemblaneWeight, SembSize , (totalGeophones+totalWindowIterations) , this->highestEnergy);
-					// }
 
 					//number of geophones is calculated again not including the window
-					//totalGeophones = totalGeophones/ totalWindowIterations;
+					totalGeophones = totalGeophones/ totalWindowIterations;
+
+					//calculate the weight of the gate
+					SemblaneWeight = SembSize / totalGeophonesWeight;
+					SemblaneWeight = 1;
+								
 					
 					//calculate semblance for the depth
 					if (SS != 0)						
@@ -326,14 +252,10 @@ void box::CalcSurfaceDist()
 							currentSemblance = 0.0f;
 
 					velocity.semb = currentSemblance* SemblaneWeight;
-					/*if (minusCounter>0)
-						minusCounter = minusCounter / totalGeophones * logf(minusCounter / totalGeophones);
-					if (plusCounter>0)
-						plusCounter = plusCounter / totalGeophones * logf(plusCounter / totalGeophones);
-					velocity.semb =  (1-(plusCounter+minusCounter))*SemblaneWeight;*/
+					
+					// multipass for velocity 
 					f1 += velocity.semb * expf(60 * velocity.semb);
 					f2 += expf(60 * velocity.semb);
-					
 				}
 					
 				sample.semblance = f1/f2;
@@ -346,11 +268,12 @@ void box::CalcSurfaceDist()
 				pBar.display();
 			}
 		}
-		
 	}
 	pBar.done();
 	std::cout << "done" << endl;
 }
+
+// calculatimng only the time deltas for each Ip
 void box::CalcTimeDeltaOnly()
 {
 	std::cout << "calculating time delta only lol" << endl;
@@ -370,9 +293,6 @@ void box::CalcTimeDeltaOnly()
 			xdist = Ip.x - Geo.x;
 			surface = sqrtf(powf(Ip.x - Geo.x, 2) + powf(Ip.y - Geo.y, 2));
 			distance = sqrtf(powf(surface, 2) + powf(IpDepth, 2));
-
-
-		
 
 			//distance between Ip and Geo for current radius
 			CurrectVelocity = vRadiusVelo.at(int(Ip.z)).second;
@@ -395,6 +315,7 @@ void box::CalcTimeDeltaOnly()
 
 }
 
+//Helper function for calculating average velocity for a specific depth
 float box::calcAvarageVelo(float IpDepth, float GeoDepth)
 {
 	auto begin = min(int(roundf(IpDepth)), int(roundf(GeoDepth)));
@@ -416,6 +337,8 @@ float box::calcAvarageVelo(float IpDepth, float GeoDepth)
 	return((counter) / avarage);
 }
 
+
+//write outpust to numoy
 void box::writeSemblenceNpy(std::string file)
 {
 	std::cout << "creating output file cube" << file << endl;
@@ -439,6 +362,7 @@ void box::writeSemblenceNpy(std::string file)
 
 }
 
+// write output of time deltas to seperate file
 void box::writeTimeDeltasNpy(std::string file)
 {
 	std::cout << "creating output file delta" << file << endl;
