@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include "Geophone.h"
 #include "ImageP.h"
-#include "IpToGeoGeometry.h"
 #include <fstream>
 #include <cmath>
 #include <chrono>
@@ -25,15 +24,15 @@ class box
 	std::vector<ImageP> vImagePoints;
 
 public:
-	box(int traces, int lines, int tracesMin, int linesMin, int startRad, int endRad, int _dx, int _dy, int _jbeg, int _jend, int _vrange, int _dv, int _minDist, int _windowSize, int _dr,float _numOfThreadsPercent);
+	box(int traces, int lines, int tracesMin, int linesMin, int startRad, int endRad, int _dx, int _dy, int _jbeg, int _jend, int _vrange, int _dv, int _minDist, int _windowSize, int _dr,float _numOfThreadsPercent, float _sampleRate);
 	void readCoord(string file);
+	void readCoordnumpy(string file);
 	
 	void readEnergy(string file);
 	void readEnergyFromNpy(string file);
 	void readVelo(string file);
 	void createImageSpace();
 	std::vector<int> getCoord();
-	float getGeophoneEnergy(int , int );
 
 	float getGeoZ(int z, int y);
 
@@ -48,40 +47,40 @@ public:
 	void writeSemblenceNpy(std::string file);
 	void writeTimeDeltasNpy(std::string file);
 	std::vector<pair<float,float>> vRadiusVelo;
-	float highestEnergy{ 0.0f };
-	float minimumDepth = 1000000;
-	float ntrace = 72;
-	float numrecl = 1;
-	float numsh = 1;
-	float numshli = 1;
-	float xmax = 5;
-	float xmin = 5;
-	float ymin = 5;
-	float ymax = 5;
-	int dxTrace = 1;
-	int dyLines = 10;
-	int nsamp=1000;
+	float highestEnergy;
+	float minimumDepth;
+	float ntrace;
+	float numrecl;
+	float numsh;
+	float numshli;
+	float xmax;
+	float xmin;
+	float ymin;
+	float ymax;
+	int dxTrace;
+	int dyLines;
+	int nsamp;
 	int windowSize;
-	int jbeg = 400;
-	int jend = 700;
-	int minDist = 1000;
-	int startRadius = 1;
-	int endRadius = 5;
-	float rmin = 1;
-	float rmax = 35;
-	int dr = 1;
-	float v0 = 500;
-	float dt = (0.500000f)/1000.0f;
-	float resamp = 1;
-	float vmin = 9999;
-	float vmax = 9999;
-	int dv = 30;
-	float itim1 = 9999;
-	float itim2 = 9999;
-	float offmin = 0;
-	float offmax = 999;
-	int vRange = 150;
-	int signalPosition = 0;
+	int jbeg;
+	int jend;
+	int minDist;
+	int startRadius;
+	int endRadius;
+	float rmin;
+	float rmax;
+	int dr;
+	float v0;
+	float dt;
+	float resamp;
+	float vmin;
+	float vmax;
+	int dv;
+	float itim1;
+	float itim2;
+	float offmin;
+	float offmax;
+	int vRange;
+	int signalPosition;
 	float numOfThreadsPercent;
 };
 

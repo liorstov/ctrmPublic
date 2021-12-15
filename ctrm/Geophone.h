@@ -1,6 +1,8 @@
 #pragma once
 #include <vector>
 
+
+// Geophone class
 class Geophone
 {
 public:
